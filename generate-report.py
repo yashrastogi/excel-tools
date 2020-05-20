@@ -123,15 +123,29 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
     plugins = [
         "Authentication Failure(s) for Provided Credentials",
         "SSH Commands Require Privilege Escalation",
+        "Authentication Failure - Local Checks Not Run",
         "Authentication Success with Intermittent Failure",
     ]
+    count = 0
     for plugin in plugins:
         for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
+            count += 1
             txtFile = open(destpath, "a")
             txtFile.write(
                 f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._9}\n\n")
             txtFile.close()
-            print(plugin)
+            print(f"{plugin} IP Address: {namedTuple._1}")
+
+    if count == 0:
+        for ipaddr in df['IP Address'].unique().tolist():
+            for _ in df.loc[(df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"), "IP Address":"Plugin Text"].itertuples():
+                count += 1
+            if count == 0:
+                txtFile = open(destpath, "a")
+                txtFile.write(
+                    f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
+                txtFile.close()
+                print(f"(No Authentication Detected) IP Address: {ipaddr}")
 
 
 def normalizeSSL(df: pd.DataFrame):
