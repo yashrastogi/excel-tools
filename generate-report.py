@@ -192,6 +192,11 @@ def normalizeMisc(df: pd.DataFrame):
             df.loc[df["Vulnerability Name"] == key, "Severity"] = "High"
             df.loc[df["Vulnerability Name"] == key,
                    "Solution"] = high_with_sol[key]
+            df.loc[df["Vulnerability Name"] == key,
+                   "Remarks"] = "Non-compliant as per MBSS Point 35"
+            replace = "This test is informational only and does not denote any security problem."
+            df.loc[(df["Vulnerability Name"] == key),
+                   "Description"].str.replace(replace, '')
         except:
             pass
 
@@ -213,10 +218,15 @@ def normalizeMisc(df: pd.DataFrame):
             for ipaddr in df.loc[(df["Vulnerability Name"] == httpp) & (df["Port"] == port), "IP Address"]:
                 if ((df["Vulnerability Name"] == sslp) & (df["Port"] == port) & (df["IP Address"] == ipaddr)).any():
                     continue
-                df.loc[(df["Vulnerability Name"] == httpp) & (
-                    df["Port"] == port) & (df["IP Address"] == ipaddr), "Severity"] = "High"
-                df.loc[(df["Vulnerability Name"] == httpp) & (
-                    df["Port"] == port) & (df["IP Address"] == ipaddr), "Solution"] = "Migrate from HTTP to HTTPS"
+                conditions = (df["Vulnerability Name"] == httpp) & (
+                    df["Port"] == port) & (df["IP Address"] == ipaddr)
+                df.loc[conditions, "Severity"] = "High"
+                df.loc[conditions, "Solution"] = "Migrate from HTTP to HTTPS"
+                df.loc[conditions, "Remarks"] = "Non-compliant as per MBSS Point 35"
+
+                replace = "This test is informational only and does not denote any security problem."
+                df.loc[conditions, "Description"] = df.loc[conditions,
+                                                           "Description"].str.replace(replace, '')
     except:
         pass
 
