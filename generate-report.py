@@ -9,17 +9,20 @@ import numpy as np
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: ./generate-report.py <directory>")
+        print("Usage: ./generate-report.py <directory> <erase*>")
         return
     else:
         path = sys.argv[1]
+        skip = True
+        if len(sys.argv) == 3 and sys.argv[2] == "erase":
+            skip = False
 
     for root, _, files in os.walk(path):
         for file in files:
             if str(file).endswith("vulns.csv") and "~$" not in str(file):
                 print(f"{file}", end=": ")
                 destpath = f'{root}/{"".join(file.split(".")[0:-1])}.xlsx'
-                if os.path.exists(destpath):
+                if os.path.exists(destpath) and skip:
                     print("Excel exists, skipping...")
                 else:
                     try:
@@ -70,8 +73,7 @@ def main():
                         with pd.ExcelWriter(
                             destpath, engine="xlsxwriter", options={"strings_to_urls": False},
                         ) as writer:
-                            df.to_excel(
-                                writer, sheet_name="Vulnerabilities", index=False)
+                            df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
 
                             # table formatting
                             worksheet = writer.sheets["Vulnerabilities"]
@@ -82,8 +84,7 @@ def main():
                             worksheet.set_column(7, 10, 23)
                             # create list of dicts for header names
                             #  (columns property accepts {'header': value} as header name)
-                            col_names = [{"header": col_name}
-                                         for col_name in df.columns]
+                            col_names = [{"header": col_name} for col_name in df.columns]
 
                             # add table with coordinates: first row, first col, last row, last col;
                             #  header names or formating can be inserted into dict
@@ -92,24 +93,21 @@ def main():
                                 0,
                                 df.shape[0],
                                 df.shape[1] - 1,
-                                {"columns": col_names,
-                                    "style": "Table Style Light 9"},
+                                {"columns": col_names, "style": "Table Style Light 9"},
                             )
 
                             # Edit Metadata
                             writer.book.set_properties(
-                                {"author": "Yash Rastogi", }
+                                {"author": "Yash Rastogi",}
                             )
                             writer.save()
                         timeEnd = datetime.now()
                         msec = (timeEnd - timeStart).total_seconds() * 1000
-                        print(
-                            "Excel file written in {:.0f}ms...\n".format(msec))
+                        print("Excel file written in {:.0f}ms...\n".format(msec))
 
                     except ValueError:
                         exception = sys.exc_info()
-                        print(
-                            f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
+                        print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
 
 
 def checkAuth(df: pd.DataFrame, root: str, file: str):
@@ -131,19 +129,20 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
         for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
             count += 1
             txtFile = open(destpath, "a")
-            txtFile.write(
-                f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._9}\n\n")
+            txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._9}\n\n")
             txtFile.close()
             print(f"{plugin} IP Address: {namedTuple._1}")
 
     if count == 0:
-        for ipaddr in df['IP Address'].unique().tolist():
-            for _ in df.loc[(df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"), "IP Address":"Plugin Text"].itertuples():
+        for ipaddr in df["IP Address"].unique().tolist():
+            for _ in df.loc[
+                (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
+                "IP Address":"Plugin Text",
+            ].itertuples():
                 count += 1
             if count == 0:
                 txtFile = open(destpath, "a")
-                txtFile.write(
-                    f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
+                txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
                 txtFile.close()
                 print(f"(No Authentication Detected) IP Address: {ipaddr}")
 
@@ -186,22 +185,19 @@ def normalizeMisc(df: pd.DataFrame):
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
         # "HTTP Server Type and Version": "Migrate from HTTP to HTTPS", # Does not catch all occurences.
     }
+    replace = "This test is informational only and does not denote any security problem."
 
     for key in high_with_sol:
         try:
             df.loc[df["Vulnerability Name"] == key, "Severity"] = "High"
-            df.loc[df["Vulnerability Name"] == key,
-                   "Solution"] = high_with_sol[key]
-            df.loc[df["Vulnerability Name"] == key,
-                   "Remarks"] = "Non-compliant as per MBSS Point 35"
-            replace = "This test is informational only and does not denote any security problem."
-            df.loc[(df["Vulnerability Name"] == key),
-                   "Description"].str.replace(replace, '')
+            df.loc[df["Vulnerability Name"] == key, "Solution"] = high_with_sol[key]
+            df.loc[df["Vulnerability Name"] == key, "Remarks"] = "Non-compliant as per MBSS Point 35"
+            df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(replace, "")
         except:
             pass
 
     normalize_plugins = {
-        "Info": ["SMB Signing not required", ],
+        "Info": ["SMB Signing not required",],
     }
 
     for key in normalize_plugins:
@@ -218,15 +214,12 @@ def normalizeMisc(df: pd.DataFrame):
             for ipaddr in df.loc[(df["Vulnerability Name"] == httpp) & (df["Port"] == port), "IP Address"]:
                 if ((df["Vulnerability Name"] == sslp) & (df["Port"] == port) & (df["IP Address"] == ipaddr)).any():
                     continue
-                conditions = (df["Vulnerability Name"] == httpp) & (
-                    df["Port"] == port) & (df["IP Address"] == ipaddr)
+                conditions = (df["Vulnerability Name"] == httpp) & (df["Port"] == port) & (df["IP Address"] == ipaddr)
+                temp = df.loc[conditions, "Description"]
                 df.loc[conditions, "Severity"] = "High"
                 df.loc[conditions, "Solution"] = "Migrate from HTTP to HTTPS"
                 df.loc[conditions, "Remarks"] = "Non-compliant as per MBSS Point 35"
-
-                replace = "This test is informational only and does not denote any security problem."
-                df.loc[conditions, "Description"] = df.loc[conditions,
-                                                           "Description"].str.replace(replace, '')
+                df.loc[conditions, "Description"] = temp.str.replace(replace, "")
     except:
         pass
 
