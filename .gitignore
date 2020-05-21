@@ -1,4 +1,5 @@
 .vscode/
 env/
+build/
 .DS_Store
 act
