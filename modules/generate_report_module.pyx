@@ -18,6 +18,7 @@ def generate_report(path, skip=True):
                         print()
                         timeStart = datetime.now()
                         df = pd.read_csv(f"{root}/{file}")
+                        df = df[['Plugin', 'Plugin Name', 'Family', 'Severity', 'IP Address', 'Protocol', 'Port', 'Exploit?', 'Repository', 'MAC Address', 'DNS Name', 'NetBIOS Name', 'Plugin Text', 'Exploit Frameworks', 'Synopsis', 'Description', 'Solution', 'See Also', 'Risk Factor', 'STIG Severity', 'Vulnerability Priority Rating', 'CVSS V2 Base Score', 'CVSS V3 Base Score', 'CVSS V2 Temporal Score', 'CVSS V3 Temporal Score', 'CVSS V2 Vector', 'CVSS V3 Vector', 'CPE', 'CVE', 'BID', 'Cross References', 'Vuln Publication Date', 'Patch Publication Date', 'Plugin Publication Date', 'Plugin Modification Date', 'Check Type', 'Version', 'First Discovered', 'Last Observed', 'Exploit Ease']]
                         checkAuth(df, root, file)
                         df.drop(
                             df.columns.difference(
