@@ -10,7 +10,7 @@ def generate_report(path, skip=True):
         for file in files:
             if str(file).endswith("vulns.csv") and "~$" not in str(file):
                 print(f"{file}", end=": ")
-                destpath = f'{root}/{"".join(file.split(".")[0:-1])}.xlsx'
+                destpath = f'{root}/excel/{"".join(file.split(".")[0:-1])}.xlsx'
                 if os.path.exists(destpath) and skip:
                     print("Excel exists, skipping...")
                 else:
@@ -19,6 +19,8 @@ def generate_report(path, skip=True):
                         timeStart = datetime.now()
                         df = pd.read_csv(f"{root}/{file}")
                         df = df[['Plugin', 'Plugin Name', 'Family', 'Severity', 'IP Address', 'Protocol', 'Port', 'Exploit?', 'Repository', 'MAC Address', 'DNS Name', 'NetBIOS Name', 'Plugin Text', 'Exploit Frameworks', 'Synopsis', 'Description', 'Solution', 'See Also', 'Risk Factor', 'STIG Severity', 'Vulnerability Priority Rating', 'CVSS V2 Base Score', 'CVSS V3 Base Score', 'CVSS V2 Temporal Score', 'CVSS V3 Temporal Score', 'CVSS V2 Vector', 'CVSS V3 Vector', 'CPE', 'CVE', 'BID', 'Cross References', 'Vuln Publication Date', 'Patch Publication Date', 'Plugin Publication Date', 'Plugin Modification Date', 'Check Type', 'Version', 'First Discovered', 'Last Observed', 'Exploit Ease']]
+                        if not os.path.exists(f'{root}/excel/'):
+                            os.makedirs(f'{root}/excel/')
                         checkAuth(df, root, file)
                         df.drop(
                             df.columns.difference(
@@ -101,7 +103,7 @@ def generate_report(path, skip=True):
 
 
 def checkAuth(df: pd.DataFrame, root: str, file: str):
-    destpath = f'{root}/{"".join(file.split(".")[0:-1])}-errors.txt'
+    destpath = f'{root}/excel/{"".join(file.split(".")[0:-1])}-errors.txt'
     try:
         if os.path.exists(destpath):
             os.remove(destpath)
