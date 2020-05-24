@@ -30,5 +30,7 @@ def count_severity(path: str):
                 df = df.append(count, ignore_index=True)
 
     df.sort_values(["File Name"], ascending=True)
-    print(f"Totals => Critical: {df['Critical'].sum()}, High: {df['High'].sum()}, Medium: {df['Medium'].sum()}, Low: {df['Low'].sum()}")
+    print(
+        f"Totals => Critical: {df['Critical'].sum()}, High: {df['High'].sum()}, Medium: {df['Medium'].sum()}, Low: {df['Low'].sum()}"
+    )
     print(tabulate(df, headers="keys", tablefmt="fancy_grid"))

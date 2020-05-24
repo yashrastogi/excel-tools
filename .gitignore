@@ -3,3 +3,4 @@ env/
 build/
 .DS_Store
 act
+*/__pycache__/
