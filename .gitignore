@@ -4,3 +4,4 @@ build/
 .DS_Store
 act
 */__pycache__/
+activate.bat

@@ -216,6 +216,7 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC portmapper Service Detection": "Disable RPC portmapper service",
         "FTP Server Detection": "Use secure alternative SFTP and disable this service",
         "DHCP Server Detection": "Disable DHCP service",
+        "NFS Server Superfluous": "Disable this service",
         "RPC rstatd Service Detection": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
         # "HTTP Server Type and Version": "Migrate from HTTP to HTTPS", # Does not catch all occurences.
@@ -233,6 +234,7 @@ def normalizeMisc(df: pd.DataFrame):
 
     normalize_plugins: dict = {
         "Info": ["SMB Signing not required",],
+        # "Medium": ["IPMI v2.0 Password Hash Disclosure",],
     }
 
     for key in normalize_plugins:
