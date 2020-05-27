@@ -11,7 +11,7 @@ def count_severity(path: str):
 
     for root, _, files in os.walk(path):
         for file in files:
-            if str(file).endswith("vulns.xlsx") and "~$" not in str(file):
+            if str(file).endswith("vulns.xlsx") and "~" not in str(file):
                 wb = xl.load_workbook(filename=f"{root}/{file}")
                 ws = wb.worksheets[0]
                 count.update({"File Name": file, "Critical": 0, "High": 0, "Medium": 0, "Low": 0})

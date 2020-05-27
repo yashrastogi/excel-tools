@@ -5,3 +5,4 @@ build/
 act
 */__pycache__/
 activate.bat
+*~
