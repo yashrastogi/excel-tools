@@ -111,7 +111,7 @@ def generate_report(path, skip=True):
                             df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
 
                             # table formatting
-                            worksheet: Worksheet = writer.sheets["Vulnerabilities"]
+                            worksheet = writer.sheets["Vulnerabilities"]
                             # set column widths
                             worksheet.set_column(11, len(df.columns), 15)
                             worksheet.set_column(2, 2, 23)
@@ -159,27 +159,28 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
         "Authentication Failure - Local Checks Not Run",
         "Authentication Success with Intermittent Failure",
     ]
-    count: int = 0
+    acknowledged: dict = {}
     for plugin in plugins:
         for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
-            count += 1
+            acknowledged.update({namedTuple._1: True})
             txtFile = open(destpath, "a")
             txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._9}\n\n")
             txtFile.close()
             print(f"{plugin} IP Address: {namedTuple._1}")
 
-    if count == 0:
-        for ipaddr in df["IP Address"].unique().tolist():
-            for _ in df.loc[
+    for ipaddr in df["IP Address"].unique().tolist():        
+        if ipaddr not in acknowledged:
+            for namedTuple in df.loc[
                 (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
                 "IP Address":"Plugin Text",
             ].itertuples():
-                count += 1
-            if count == 0:
-                txtFile = open(destpath, "a")
-                txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
-                txtFile.close()
-                print(f"(No Authentication Detected) IP Address: {ipaddr}")
+                acknowledged.update({namedTuple._1: True})
+            for ipaddr in df["IP Address"].unique().tolist():
+                if ipaddr not in acknowledged:
+                    txtFile = open(destpath, "a")
+                    txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
+                    txtFile.close()
+                    print(f"(No Authentication Detected) IP Address: {ipaddr}")
 
 
 def normalizeSSL(df: pd.DataFrame):
