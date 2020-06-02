@@ -107,7 +107,7 @@ def generate_report(path, skip=True):
                         normalizeSSL(df)
                         normalizeMisc(df)
                         stripOutput(df)
-                        with pd.ExcelWriter(
+                        with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
                             destpath, engine="xlsxwriter", options={"strings_to_urls": False},
                         ) as writer:
                             df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
@@ -146,12 +146,14 @@ def generate_report(path, skip=True):
                         exception: tuple = sys.exc_info()
                         print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
 
+
 def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters
     try:
-        df['Plugin Text'] = [x[0:32766] for x in df['Plugin Text']]
+        df["Plugin Text"] = [x[0:32766] for x in df["Plugin Text"]]
     except:
         pass
+
 
 def checkAuth(df: pd.DataFrame, root: str, file: str):
     destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}-errors.txt'
