@@ -32,11 +32,11 @@ def generate_report(path, skip=True):
                                 "MAC Address",
                                 "DNS Name",
                                 "NetBIOS Name",
-                                "Plugin Text",
                                 "Exploit Frameworks",
                                 "Synopsis",
                                 "Description",
                                 "Solution",
+                                "Plugin Text",
                                 "See Also",
                                 "Risk Factor",
                                 "STIG Severity",
@@ -74,6 +74,7 @@ def generate_report(path, skip=True):
                                     "IP Address",
                                     "Protocol",
                                     "Port",
+                                    "Plugin Text",
                                     "Synopsis",
                                     "Description",
                                     "Solution",
@@ -105,6 +106,7 @@ def generate_report(path, skip=True):
                         )
                         normalizeSSL(df)
                         normalizeMisc(df)
+                        stripOutput(df)
                         with pd.ExcelWriter(
                             destpath, engine="xlsxwriter", options={"strings_to_urls": False},
                         ) as writer:
@@ -144,6 +146,12 @@ def generate_report(path, skip=True):
                         exception: tuple = sys.exc_info()
                         print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
 
+def stripOutput(df: pd.DataFrame):
+    # Total number of characters that a cell can contain, in excel: 32,767 characters
+    try:
+        df['Plugin Text'] = [x[0:32766] for x in df['Plugin Text']]
+    except:
+        pass
 
 def checkAuth(df: pd.DataFrame, root: str, file: str):
     destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}-errors.txt'
@@ -168,7 +176,7 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
             txtFile.close()
             print(f"{plugin} IP Address: {namedTuple._1}")
 
-    for ipaddr in df["IP Address"].unique().tolist():        
+    for ipaddr in df["IP Address"].unique().tolist():
         if ipaddr not in acknowledged:
             for namedTuple in df.loc[
                 (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),

@@ -7,7 +7,7 @@ from tabulate import tabulate
 
 def count_severity(path: str):
     count = {}
-    df = pd.DataFrame(columns=["File Name", "Critical", "High", "Medium", "Low","Total" ,"IP Count"])
+    df = pd.DataFrame(columns=["File Name", "Critical", "High", "Medium", "Low", "Total", "IP Count"])
 
     for root, _, files in os.walk(path):
         for file in files:
@@ -28,9 +28,9 @@ def count_severity(path: str):
                                 count[str(cell.value)] += 1
                 total = 0
                 for i, (k, v) in enumerate(count.items()):
-                    if k in ['Critical', 'High', 'Medium', 'Low']:
+                    if k in ["Critical", "High", "Medium", "Low"]:
                         total += count[k]
-                count.update({"Total": total,"IP Count": len(iplist) - 1})
+                count.update({"Total": total, "IP Count": len(iplist) - 1})
                 df = df.append(count, ignore_index=True)
 
     df.sort_values(["File Name"], ascending=True)
