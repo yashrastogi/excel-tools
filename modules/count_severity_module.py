@@ -7,14 +7,14 @@ from tabulate import tabulate
 
 def count_severity(path: str):
     count = {}
-    df = pd.DataFrame(columns=["File Name", "Critical", "High", "Medium", "Low", "IP Count"])
+    df = pd.DataFrame(columns=["File Name", "Critical", "High", "Medium", "Low","Total" ,"IP Count"])
 
     for root, _, files in os.walk(path):
         for file in files:
             if str(file).endswith("vulns.xlsx") and "~" not in str(file):
                 wb = xl.load_workbook(filename=f"{root}/{file}")
                 ws = wb.worksheets[0]
-                count.update({"File Name": file, "Critical": 0, "High": 0, "Medium": 0, "Low": 0})
+                count.update({"File Name": file, "Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Total": 0})
                 iplist: list = []
                 for row in ws:
                     counter = 0
@@ -26,7 +26,11 @@ def count_severity(path: str):
                         if counter == 4:
                             if str(cell.value) in count.keys():
                                 count[str(cell.value)] += 1
-                count.update({"IP Count": len(iplist) - 1})
+                total = 0
+                for i, (k, v) in enumerate(count.items()):
+                    if k in ['Critical', 'High', 'Medium', 'Low']:
+                        total += count[k]
+                count.update({"Total": total,"IP Count": len(iplist) - 1})
                 df = df.append(count, ignore_index=True)
 
     df.sort_values(["File Name"], ascending=True)

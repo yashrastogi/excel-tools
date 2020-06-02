@@ -175,12 +175,13 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
                 "IP Address":"Plugin Text",
             ].itertuples():
                 acknowledged.update({namedTuple._1: True})
-            for ipaddr in df["IP Address"].unique().tolist():
-                if ipaddr not in acknowledged:
-                    txtFile = open(destpath, "a")
-                    txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
-                    txtFile.close()
-                    print(f"(No Authentication Detected) IP Address: {ipaddr}")
+    # print(acknowledged)
+    for ipaddr in df["IP Address"].unique().tolist():
+        if ipaddr not in acknowledged:
+            txtFile = open(destpath, "a")
+            txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
+            txtFile.close()
+            print(f"(No Authentication Detected) IP Address: {ipaddr}")
 
 
 def normalizeSSL(df: pd.DataFrame):
