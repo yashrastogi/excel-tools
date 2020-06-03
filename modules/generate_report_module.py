@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import sys
-
+import time
 
 def generate_report(path, skip=True):
     for root, _, files in os.walk(path):
@@ -107,7 +107,7 @@ def generate_report(path, skip=True):
                         normalizeSSL(df)
                         normalizeMisc(df)
                         stripOutput(df)
-                        # portsDF = generatePortSheet(df)
+                        portsDF = generatePortSheet(df)
                         with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
                             destpath, engine="xlsxwriter", options={"strings_to_urls": False},
                         ) as writer:
@@ -143,6 +143,13 @@ def generate_report(path, skip=True):
                         exception: tuple = sys.exc_info()
                         print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
 
+def generatePortSheet(df: pd.DataFrame):
+    data = df['Port'].unique()
+    print(data[0:, 0])
+    portsDF = pd.DataFrame(data=data, index=data[1:,0], columns=data[0,1:]) # 1st column as index
+    
+    time.sleep(10)
+    return portsDF
 
 def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters
@@ -228,7 +235,6 @@ def normalizeMisc(df: pd.DataFrame):
         "NFS Server Superfluous": "Disable this service",
         "RPC rstatd Service Detection": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
-        # "HTTP Server Type and Version": "Migrate from HTTP to HTTPS", # Does not catch all occurences.
     }
     replace: str = "This test is informational only and does not denote any security problem."
 
