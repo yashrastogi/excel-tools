@@ -107,11 +107,12 @@ def generate_report(path, skip=True):
                         normalizeSSL(df)
                         normalizeMisc(df)
                         stripOutput(df)
+                        # portsDF = generatePortSheet(df)
                         with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
                             destpath, engine="xlsxwriter", options={"strings_to_urls": False},
                         ) as writer:
-                            df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
 
+                            df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
                             # table formatting
                             worksheet = writer.sheets["Vulnerabilities"]
                             # set column widths
@@ -126,11 +127,7 @@ def generate_report(path, skip=True):
                             # add table with coordinates: first row, first col, last row, last col;
                             #  header names or formating can be inserted into dict
                             worksheet.add_table(
-                                0,
-                                0,
-                                df.shape[0],
-                                df.shape[1] - 1,
-                                {"columns": col_names, "style": "Table Style Light 9"},
+                                0, 0, df.shape[0], df.shape[1] - 1, {"columns": col_names, "style": "Table Style Light 9"},
                             )
 
                             # Edit Metadata
@@ -182,11 +179,10 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
     for ipaddr in df["IP Address"].unique().tolist():
         if ipaddr not in acknowledged:
             for namedTuple in df.loc[
-                (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
-                "IP Address":"Plugin Text",
+                (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"), "IP Address":"Plugin Text",
             ].itertuples():
                 acknowledged.update({namedTuple._1: True})
-    # print(acknowledged)
+
     for ipaddr in df["IP Address"].unique().tolist():
         if ipaddr not in acknowledged:
             txtFile = open(destpath, "a")
@@ -257,18 +253,16 @@ def normalizeMisc(df: pd.DataFrame):
             except:
                 pass
 
-    httpp: str = "HyperText Transfer Protocol (HTTP) Information"
-    sslp: str = "SSL / TLS Versions Supported"
     try:
-        for port in df.loc[df["Vulnerability Name"] == httpp, "Port"]:
-            for ipaddr in df.loc[(df["Vulnerability Name"] == httpp) & (df["Port"] == port), "IP Address"]:
-                if ((df["Vulnerability Name"] == sslp) & (df["Port"] == port) & (df["IP Address"] == ipaddr)).any():
-                    continue
-                conditions = (df["Vulnerability Name"] == httpp) & (df["Port"] == port) & (df["IP Address"] == ipaddr)
-                temp: pd.DataFrame = df.loc[conditions, "Description"]
-                df.loc[conditions, "Severity"] = "High"
-                df.loc[conditions, "Solution"] = "Migrate from HTTP to HTTPS"
-                df.loc[conditions, "Remarks"] = "Non-compliant as per MBSS Point 35"
-                df.loc[conditions, "Description"] = temp.str.replace(replace, "")
+        conditions = (
+            (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
+            & ~df["Plugin Text"].str.contains("Response Code : HTTP/1.1 400 Bad Request", na=False)
+            & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
+        )
+        df.loc[conditions, ["Severity", "Solution", "Remarks"],] = [
+            "High",
+            "Migrate from HTTP to HTTPS",
+            "Non-compliant as per MBSS Point 35",
+        ]
     except:
         pass
