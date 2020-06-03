@@ -153,7 +153,7 @@ def generatePortsDF(df: pd.DataFrame):
 def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters
     try:
-        df["Plugin Text"] = df["Plugin Text"].str.replace("Plugin Output: \n", "").str.replace("Plugin Output: ", "")
+        df["Plugin Text"] = df["Plugin Text"].str.replace("Plugin Output: \n", " ").str.replace("Plugin Output: ", " ")
         df["Plugin Text"] = [x[0:32766] for x in df["Plugin Text"]]
     except:
         pass
