@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import sys
-import time
+
 
 def generate_report(path, skip=True):
     for root, _, files in os.walk(path):
@@ -107,12 +107,11 @@ def generate_report(path, skip=True):
                         normalizeSSL(df)
                         normalizeMisc(df)
                         stripOutput(df)
-                        portsDF = generatePortSheet(df)
                         with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
                             destpath, engine="xlsxwriter", options={"strings_to_urls": False},
                         ) as writer:
-
                             df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
+                            generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
                             # table formatting
                             worksheet = writer.sheets["Vulnerabilities"]
                             # set column widths
@@ -143,13 +142,13 @@ def generate_report(path, skip=True):
                         exception: tuple = sys.exc_info()
                         print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
 
-def generatePortSheet(df: pd.DataFrame):
-    data = df['Port'].unique()
-    print(data[0:, 0])
-    portsDF = pd.DataFrame(data=data, index=data[1:,0], columns=data[0,1:]) # 1st column as index
-    
-    time.sleep(10)
+
+def generatePortsDF(df: pd.DataFrame):
+    portsDF = pd.DataFrame(data=df["Port"].unique(), columns=["Port"])
+    portsDF = portsDF[portsDF.Port != 0]
+    portsDF.sort_values(by="Port", inplace=True)
     return portsDF
+
 
 def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters

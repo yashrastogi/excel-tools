@@ -14,17 +14,19 @@ def count_severity(path: str):
                 df: pd.DataFrame = pd.read_excel(f"{root}/{file}", index_col="S. No.")
                 sevCounts: pd.DataFrame = df["Severity"].value_counts()
                 countDict = {key: 0 for key in columns}
-                countDict.update({
-                    "File Name": file,
-                    "Total": sevCounts.sum() - sevCounts.loc[sevCounts.index == "Info"].sum(),
-                    "IP Count": df["IP Address"].nunique(),
-                })
+                countDict.update(
+                    {
+                        "File Name": file,
+                        "Total": sevCounts.sum() - sevCounts.loc[sevCounts.index == "Info"].sum(),
+                        "IP Count": df["IP Address"].nunique(),
+                    }
+                )
                 for key in countDict:
                     if key in sevCounts.index:
                         countDict[key] = sevCounts[key]
                 fileInfoDF = fileInfoDF.append(countDict, ignore_index=True)
 
-    fileInfoDF.sort_values(["File Name"], ascending=True)
+    fileInfoDF.sort_values(["File Name"], inplace=True)
     print(
         f"Totals => Critical: {fileInfoDF['Critical'].sum()}, High: {fileInfoDF['High'].sum()}, Medium: {fileInfoDF['Medium'].sum()}, Low: {fileInfoDF['Low'].sum()}"
     )
