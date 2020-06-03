@@ -26,7 +26,7 @@ def count_severity(path: str):
                         countDict[key] = sevCounts[key]
                 fileInfoDF = fileInfoDF.append(countDict, ignore_index=True)
 
-    fileInfoDF.sort_values(["File Name"], inplace=True)
+    fileInfoDF.sort_values(["File Name"], inplace=True, ignore_index=True)
     print(
         f"Totals => Critical: {fileInfoDF['Critical'].sum()}, High: {fileInfoDF['High'].sum()}, Medium: {fileInfoDF['Medium'].sum()}, Low: {fileInfoDF['Low'].sum()}"
     )
