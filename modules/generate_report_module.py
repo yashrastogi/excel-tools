@@ -154,7 +154,7 @@ def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters
     try:
         df["Plugin Text"] = df["Plugin Text"].str.replace("Plugin Output: \n", " ").str.replace("Plugin Output: ", " ")
-        df["Plugin Text"] = [x[0:32766] for x in df["Plugin Text"]]
+        df["Plugin Text"] = [x[0:32760] for x in df["Plugin Text"]]
     except:
         pass
 
@@ -178,7 +178,7 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
         for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
             acknowledged.update({namedTuple._1: True})
             txtFile = open(destpath, "a")
-            txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._9}\n\n")
+            txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._13}\n\n")
             txtFile.close()
             print(f"{plugin} IP Address: {namedTuple._1}")
 
