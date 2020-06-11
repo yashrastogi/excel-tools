@@ -30,4 +30,4 @@ def count_severity(path: str):
     print(
         f"Totals => Critical: {fileInfoDF['Critical'].sum()}, High: {fileInfoDF['High'].sum()}, Medium: {fileInfoDF['Medium'].sum()}, Low: {fileInfoDF['Low'].sum()}"
     )
-    print(tabulate(fileInfoDF, headers="keys", tablefmt="fancy_grid"))
+    print(tabulate(fileInfoDF, headers="keys", tablefmt="simple"))
