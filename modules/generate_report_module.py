@@ -37,7 +37,7 @@ def generate_report(path, skip=True):
                                 "Description",
                                 "Solution",
                                 "Plugin Text",
-                                "See Also",
+                                "CVE",
                                 "Risk Factor",
                                 "STIG Severity",
                                 "Vulnerability Priority Rating",
@@ -48,7 +48,7 @@ def generate_report(path, skip=True):
                                 "CVSS V2 Vector",
                                 "CVSS V3 Vector",
                                 "CPE",
-                                "CVE",
+                                "See Also",
                                 "BID",
                                 "Cross References",
                                 "Vuln Publication Date",
@@ -92,7 +92,7 @@ def generate_report(path, skip=True):
                             1,
                             inplace=True,
                         )
-                        df.insert(len(df.columns), "Remarks", np.NaN)
+                        df.insert(12, "Remarks", np.NaN)
                         df.insert(0, "S. No.", np.NaN)
                         for i, _ in df.iterrows():
                             df.loc[i, "S. No."] = i + 1
@@ -114,11 +114,18 @@ def generate_report(path, skip=True):
                             generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
                             # table formatting
                             worksheet = writer.sheets["Vulnerabilities"]
+                            worksheet.set_column(7, 10, None, writer.book.add_format({'align': 'fill'}))                            
+                            worksheet.set_row(0, None, writer.book.add_format({'align': 'left'}))
                             # set column widths
-                            worksheet.set_column(11, len(df.columns), 15)
-                            worksheet.set_column(2, 2, 23)
-                            worksheet.set_column(4, 4, 14)
-                            worksheet.set_column(7, 10, 23)
+                            worksheet.set_column(0, 0, 5)                   # S No.
+                            worksheet.set_column(1, 1, 7)                   # Plugin ID
+                            worksheet.set_column(2, 2, 26)                  # Vuln. Name
+                            worksheet.set_column(4, 4, 12)                  # IP Addr.
+                            worksheet.set_column(5, 5, 4)                   # Protocol
+                            worksheet.set_column(6, 6, 6)                   # Port
+                            worksheet.set_column(7, 10, 35)                 # Columns 8 -> 11
+                            worksheet.set_column(11, len(df.columns), 15)   # Columns 12 -> End
+                            worksheet.set_column(12, 12, 20, writer.book.add_format({'align': 'fill'}))
                             # create list of dicts for header names
                             #  (columns property accepts {'header': value} as header name)
                             col_names = [{"header": col_name} for col_name in df.columns]
@@ -126,7 +133,7 @@ def generate_report(path, skip=True):
                             # add table with coordinates: first row, first col, last row, last col;
                             #  header names or formating can be inserted into dict
                             worksheet.add_table(
-                                0, 0, df.shape[0], df.shape[1] - 1, {"columns": col_names, "style": "Table Style Light 9"},
+                                0, 0, df.shape[0], df.shape[1] - 1, {"columns": col_names, "style": "Table Style Medium 15"},
                             )
 
                             # Edit Metadata
@@ -232,6 +239,7 @@ def normalizeMisc(df: pd.DataFrame):
         "FTP Server Detection": "Use secure alternative SFTP and disable this service",
         "DHCP Server Detection": "Disable DHCP service",
         "NFS Server Superfluous": "Disable this service",
+        "NFS Share Export List": "Disable this service",
         "RPC rstatd Service Detection": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
     }
