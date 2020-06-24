@@ -269,8 +269,11 @@ def normalizeMisc(df: pd.DataFrame):
     try:
         conditions = (
             (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
-            # & ~df["Plugin Text"].str.contains("Response Code : HTTP/1.1 400 Bad Request", na=False)
+            & ~df["Plugin Text"].str.contains("This combination of host and port requires TLS", na=False)
+            & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
             & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
+            & ~df["Plugin Text"].str.contains("Location: https://", na=False)
+            & ~df["Plugin Text"].str.contains("You're speaking plain HTTP to an SSL-enabled server port.", na=False)
         )
         temp = df.loc[conditions, "Description"]
         df.loc[conditions, ["Severity", "Solution", "Remarks", "Description"]] = [
