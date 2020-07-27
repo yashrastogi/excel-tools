@@ -6,6 +6,74 @@ import sys
 
 
 def generate_report(path, skip=True):
+    columns_dtypes = {
+        "Plugin": pd.Int64Dtype(),
+        "Plugin Name": pd.CategoricalDtype(ordered=False),
+        "Family": pd.CategoricalDtype(ordered=False),
+        "Severity": pd.CategoricalDtype(categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False),
+        "IP Address": "object",
+        "Protocol": pd.CategoricalDtype(categories=["TCP", "UDP"], ordered=False),
+        "Port": pd.Int64Dtype(),
+        "Exploit?": pd.CategoricalDtype(ordered=False),
+        "Repository": pd.CategoricalDtype(ordered=False),
+        "MAC Address": "object",
+        "DNS Name": "object",
+        "NetBIOS Name": "object",
+        "Plugin Text": "object",
+        "Synopsis": "object",
+        "Description": "object",
+        "Solution": "object",
+        "See Also": "object",
+        "Risk Factor": pd.CategoricalDtype(ordered=False),
+        "STIG Severity": pd.CategoricalDtype(ordered=False),
+        "Vulnerability Priority Rating": "float64",
+        "CVSS V2 Base Score": "float64",
+        "CVSS V3 Base Score": "float64",
+        "CVSS V2 Temporal Score": "float64",
+        "CVSS V3 Temporal Score": "float64",
+        "CVSS V2 Vector": "object",
+        "CVSS V3 Vector": "object",
+        "CPE": "object",
+        "CVE": "object",
+        "BID": "object",
+        "Cross References": "object",
+        "First Discovered": pd.CategoricalDtype(ordered=False),
+        "Last Observed": pd.CategoricalDtype(ordered=False),
+        "Vuln Publication Date": "object",
+        "Patch Publication Date": "object",
+        "Plugin Publication Date": "object",
+        "Plugin Modification Date": "object",
+        "Exploit Ease": pd.CategoricalDtype(
+            categories=["Exploits are available", "No exploit is required", "No known exploits are available"],
+            ordered=False,
+        ),
+        "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
+        "Check Type": pd.CategoricalDtype(ordered=False),
+        "Version": "object",
+    }
+
+    colNames = [
+        "Plugin",
+        "Plugin Name",
+        "Severity",
+        "IP Address",
+        "Protocol",
+        "Port",
+        "Plugin Text",
+        "Synopsis",
+        "Description",
+        "Solution",
+        "See Also",
+        "First Discovered",
+        "Last Observed",
+        "CVE",
+        "Vuln Publication Date",
+        "Patch Publication Date",
+        "Plugin Publication Date",
+        "Plugin Modification Date",
+        "Exploit Ease",
+    ]
+
     for root, _, files in os.walk(path):
         for file in files:
             if str(file).endswith("vulns.csv") and "~$" not in str(file):
@@ -17,83 +85,15 @@ def generate_report(path, skip=True):
                     try:
                         print()
                         timeStart: datetime = datetime.now()
-                        df: pd.DataFrame = pd.read_csv(f"{root}/{file}")
-                        df = df[
-                            [
-                                "Plugin",
-                                "Plugin Name",
-                                "Family",
-                                "Severity",
-                                "IP Address",
-                                "Protocol",
-                                "Port",
-                                "Exploit?",
-                                "Repository",
-                                "MAC Address",
-                                "DNS Name",
-                                "NetBIOS Name",
-                                "Exploit Frameworks",
-                                "Synopsis",
-                                "Description",
-                                "Solution",
-                                "Plugin Text",
-                                "CVE",
-                                "Risk Factor",
-                                "STIG Severity",
-                                "Vulnerability Priority Rating",
-                                "CVSS V2 Base Score",
-                                "CVSS V3 Base Score",
-                                "CVSS V2 Temporal Score",
-                                "CVSS V3 Temporal Score",
-                                "CVSS V2 Vector",
-                                "CVSS V3 Vector",
-                                "CPE",
-                                "See Also",
-                                "BID",
-                                "Cross References",
-                                "Vuln Publication Date",
-                                "Patch Publication Date",
-                                "Plugin Publication Date",
-                                "Plugin Modification Date",
-                                "Check Type",
-                                "Version",
-                                "First Discovered",
-                                "Last Observed",
-                                "Exploit Ease",
-                            ]
-                        ]
+                        df: pd.DataFrame = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[columns_dtypes.keys()]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
                         checkAuth(df, root, file)
                         df.drop(
-                            df.columns.difference(
-                                [
-                                    "Plugin",
-                                    "Plugin Name",
-                                    "Severity",
-                                    "IP Address",
-                                    "Protocol",
-                                    "Port",
-                                    "Plugin Text",
-                                    "Synopsis",
-                                    "Description",
-                                    "Solution",
-                                    "See Also",
-                                    "First Discovered",
-                                    "Last Observed",
-                                    "CVE",
-                                    "Vuln Publication Date",
-                                    "Patch Publication Date",
-                                    "Plugin Publication Date",
-                                    "Plugin Modification Date",
-                                    "Exploit Ease",
-                                ]
-                            ),
-                            1,
-                            inplace=True,
+                            df.columns.difference(colNames), 1, inplace=True,
                         )
-                        df.insert(12, "Remarks", np.NaN)
-                        df.insert(0, "S. No.", np.NaN)
+                        df.insert(12, "Remarks", "")
+                        df.insert(0, "S. No.", 0)
                         for i, _ in df.iterrows():
                             df.loc[i, "S. No."] = i + 1
                         df.rename(
@@ -114,18 +114,18 @@ def generate_report(path, skip=True):
                             generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
                             # table formatting
                             worksheet = writer.sheets["Vulnerabilities"]
-                            worksheet.set_column(7, 10, None, writer.book.add_format({'align': 'fill'}))                            
-                            worksheet.set_row(0, None, writer.book.add_format({'align': 'left'}))
+                            worksheet.set_column(7, 10, None, writer.book.add_format({"align": "fill"}))
+                            worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
                             # set column widths
-                            worksheet.set_column(0, 0, 5)                   # S No.
-                            worksheet.set_column(1, 1, 7)                   # Plugin ID
-                            worksheet.set_column(2, 2, 26)                  # Vuln. Name
-                            worksheet.set_column(4, 4, 12)                  # IP Addr.
-                            worksheet.set_column(5, 5, 4)                   # Protocol
-                            worksheet.set_column(6, 6, 6)                   # Port
-                            worksheet.set_column(7, 10, 35)                 # Columns 8 -> 11
-                            worksheet.set_column(11, len(df.columns), 15)   # Columns 12 -> End
-                            worksheet.set_column(12, 12, 20, writer.book.add_format({'align': 'fill'}))
+                            worksheet.set_column(0, 0, 5)  # S No.
+                            worksheet.set_column(1, 1, 7)  # Plugin ID
+                            worksheet.set_column(2, 2, 26)  # Vuln. Name
+                            worksheet.set_column(4, 4, 12)  # IP Addr.
+                            worksheet.set_column(5, 5, 4)  # Protocol
+                            worksheet.set_column(6, 6, 6)  # Port
+                            worksheet.set_column(7, 10, 35)  # Columns 8 -> 11
+                            worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
+                            worksheet.set_column(12, 12, 20, writer.book.add_format({"align": "fill"}))
                             # create list of dicts for header names
                             #  (columns property accepts {'header': value} as header name)
                             col_names = [{"header": col_name} for col_name in df.columns]
@@ -133,7 +133,11 @@ def generate_report(path, skip=True):
                             # add table with coordinates: first row, first col, last row, last col;
                             #  header names or formating can be inserted into dict
                             worksheet.add_table(
-                                0, 0, df.shape[0], df.shape[1] - 1, {"columns": col_names, "style": "Table Style Medium 15"},
+                                0,
+                                0,
+                                df.shape[0],
+                                df.shape[1] - 1,
+                                {"columns": col_names, "style": "Table Style Medium 15"},
                             )
 
                             # Edit Metadata
@@ -192,7 +196,8 @@ def checkAuth(df: pd.DataFrame, root: str, file: str):
     for ipaddr in df["IP Address"].unique().tolist():
         if ipaddr not in acknowledged:
             for namedTuple in df.loc[
-                (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"), "IP Address":"Plugin Text",
+                (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
+                "IP Address":"Plugin Text",
             ].itertuples():
                 acknowledged.update({namedTuple._1: True})
 
@@ -280,7 +285,7 @@ def normalizeMisc(df: pd.DataFrame):
             "High",
             "Migrate from HTTP to HTTPS",
             "Non-compliant as per MBSS Point 35",
-            temp.str.replace(replace, "")
+            temp.str.replace(replace, ""),
         ]
     except:
         pass
