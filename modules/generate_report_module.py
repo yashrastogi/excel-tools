@@ -19,10 +19,11 @@ def generate_report(path, skip=True):
         "MAC Address": "object",
         "DNS Name": "object",
         "NetBIOS Name": "object",
-        "Plugin Text": "object",
+        "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
         "Synopsis": "object",
         "Description": "object",
         "Solution": "object",
+        "Plugin Text": "object",
         "See Also": "object",
         "Risk Factor": pd.CategoricalDtype(ordered=False),
         "STIG Severity": pd.CategoricalDtype(ordered=False),
@@ -47,7 +48,7 @@ def generate_report(path, skip=True):
             categories=["Exploits are available", "No exploit is required", "No known exploits are available"],
             ordered=False,
         ),
-        "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
+        
         "Check Type": pd.CategoricalDtype(ordered=False),
         "Version": "object",
     }
