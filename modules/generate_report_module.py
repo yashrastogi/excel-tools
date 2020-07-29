@@ -48,7 +48,6 @@ def generate_report(path, skip=True):
             categories=["Exploits are available", "No exploit is required", "No known exploits are available"],
             ordered=False,
         ),
-        
         "Check Type": pd.CategoricalDtype(ordered=False),
         "Version": "object",
     }
@@ -79,7 +78,7 @@ def generate_report(path, skip=True):
         for file in files:
             if str(file).endswith("vulns.csv") and "~$" not in str(file):
                 print(f"{file}", end=": ")
-                destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}.xlsx'
+                destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}'
                 if os.path.exists(destpath) and skip:
                     print("Excel exists, skipping...")
                 else:
@@ -89,14 +88,13 @@ def generate_report(path, skip=True):
                         df: pd.DataFrame = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[columns_dtypes.keys()]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        checkAuth(df, root, file)
+                        checkAuth(df, destpath)
                         df.drop(
                             df.columns.difference(colNames), 1, inplace=True,
                         )
                         df.insert(12, "Remarks", "")
                         df.insert(0, "S. No.", 0)
-                        for i, _ in df.iterrows():
-                            df.loc[i, "S. No."] = i + 1
+                        df["S. No."] = df.index + 1
                         df.rename(
                             columns={
                                 "See Also": "Additional Details",
@@ -108,44 +106,7 @@ def generate_report(path, skip=True):
                         normalizeSSL(df)
                         normalizeMisc(df)
                         stripOutput(df)
-                        with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
-                            destpath, engine="xlsxwriter", options={"strings_to_urls": False},
-                        ) as writer:
-                            df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
-                            generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
-                            # table formatting
-                            worksheet = writer.sheets["Vulnerabilities"]
-                            worksheet.set_column(7, 10, None, writer.book.add_format({"align": "fill"}))
-                            worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
-                            # set column widths
-                            worksheet.set_column(0, 0, 5)  # S No.
-                            worksheet.set_column(1, 1, 7)  # Plugin ID
-                            worksheet.set_column(2, 2, 26)  # Vuln. Name
-                            worksheet.set_column(4, 4, 12)  # IP Addr.
-                            worksheet.set_column(5, 5, 4)  # Protocol
-                            worksheet.set_column(6, 6, 6)  # Port
-                            worksheet.set_column(7, 10, 35)  # Columns 8 -> 11
-                            worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
-                            worksheet.set_column(12, 12, 20, writer.book.add_format({"align": "fill"}))
-                            # create list of dicts for header names
-                            #  (columns property accepts {'header': value} as header name)
-                            col_names = [{"header": col_name} for col_name in df.columns]
-
-                            # add table with coordinates: first row, first col, last row, last col;
-                            #  header names or formating can be inserted into dict
-                            worksheet.add_table(
-                                0,
-                                0,
-                                df.shape[0],
-                                df.shape[1] - 1,
-                                {"columns": col_names, "style": "Table Style Medium 15"},
-                            )
-
-                            # Edit Metadata
-                            writer.book.set_properties(
-                                {"author": "Yash Rastogi",}
-                            )
-                            writer.save()
+                        writeExcel(df, destpath)
                         timeEnd: datetime = datetime.now()
                         msec: int = (timeEnd - timeStart).total_seconds() * 1000
                         print("Excel file written in {:.0f}ms...\n".format(msec))
@@ -153,6 +114,47 @@ def generate_report(path, skip=True):
                     except ValueError:
                         exception: tuple = sys.exc_info()
                         print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
+
+
+def writeExcel(df, destpath):
+    with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
+        f"{destpath}.xlsx", engine="xlsxwriter", options={"strings_to_urls": False},
+    ) as writer:
+        df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
+        generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
+        # table formatting
+        _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
+        writer.save()
+
+
+def _worksheetFormat(worksheet, writer, df):
+    worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
+    if len(df.columns) > 12:
+        worksheet.set_column(7, 10, None, writer.book.add_format({"align": "fill"}))
+        # set column widths
+        worksheet.set_column(0, 0, 5)  # S No.
+        worksheet.set_column(1, 1, 7)  # Plugin ID
+        worksheet.set_column(2, 2, 26)  # Vuln. Name
+        worksheet.set_column(4, 4, 12)  # IP Addr.
+        worksheet.set_column(5, 5, 4)  # Protocol
+        worksheet.set_column(6, 6, 6)  # Port
+        worksheet.set_column(7, 10, 35)  # Columns 8 -> 11
+        worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
+        worksheet.set_column(12, 12, 20, writer.book.add_format({"align": "fill"}))
+        
+    # create list of dicts for header names
+    #  (columns property accepts {'header': value} as header name)
+    col_names = [{"header": col_name} for col_name in df.columns]
+
+    # add table with coordinates: first row, first col, last row, last col;
+    #  header names or formating can be inserted into dict
+    worksheet.add_table(
+        0, 0, df.shape[0], df.shape[1] - 1, {"columns": col_names, "style": "Table Style Medium 15"},
+    )
+    # Edit Metadata
+    writer.book.set_properties(
+        {"author": "Yash Rastogi",}
+    )
 
 
 def generatePortsDF(df: pd.DataFrame):
@@ -171,8 +173,8 @@ def stripOutput(df: pd.DataFrame):
         pass
 
 
-def checkAuth(df: pd.DataFrame, root: str, file: str):
-    destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}-errors.txt'
+def checkAuth(df: pd.DataFrame, destpath):
+    destpath: str = f"{destpath}-errors.txt"
     try:
         if os.path.exists(destpath):
             os.remove(destpath)
