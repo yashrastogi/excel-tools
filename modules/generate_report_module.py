@@ -79,7 +79,7 @@ def generate_report(path, skip=True):
             if str(file).endswith("vulns.csv") and "~$" not in str(file):
                 print(f"{file}", end=": ")
                 destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}'
-                if os.path.exists(destpath) and skip:
+                if os.path.exists(f'{destpath}.xlsx') and skip:
                     print("Excel exists, skipping...")
                 else:
                     try:
