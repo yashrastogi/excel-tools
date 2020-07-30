@@ -196,7 +196,7 @@ def checkAuth(df: pd.DataFrame, destpath):
             txtFile.close()
             print(f"{plugin} IP Address: {namedTuple._1}")
 
-    for ipaddr in df["IP Address"].unique().tolist():
+    for ipaddr in df["IP Address"].unique():
         if ipaddr not in acknowledged:
             for namedTuple in df.loc[
                 (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
@@ -204,7 +204,7 @@ def checkAuth(df: pd.DataFrame, destpath):
             ].itertuples():
                 acknowledged.update({namedTuple._1: True})
 
-    for ipaddr in df["IP Address"].unique().tolist():
+    for ipaddr in df["IP Address"].unique():
         if ipaddr not in acknowledged:
             txtFile = open(destpath, "a")
             txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
