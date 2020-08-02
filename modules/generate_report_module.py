@@ -5,7 +5,7 @@ import numpy as np
 import sys
 
 
-def generate_report(path, skip=True):
+def generate_report(path, skip=True, checkAuthOpt=True):
     columns_dtypes = {
         "Plugin": pd.Int64Dtype(),
         "Plugin Name": pd.CategoricalDtype(ordered=False),
@@ -78,42 +78,45 @@ def generate_report(path, skip=True):
         for file in files:
             if str(file).endswith("vulns.csv") and "~$" not in str(file):
                 print(f"{file}", end=": ")
-                destpath: str = f'{root}/excel/{"".join(file.split(".")[0:-1])}'
-                if os.path.exists(f'{destpath}.xlsx') and skip:
+                destpath = f'{root}/excel/{"".join(file.split(".")[0:-1])}'
+                if os.path.exists(f"{destpath}.xlsx") and skip:
                     print("Excel exists, skipping...")
                 else:
                     try:
                         print()
                         timeStart: datetime = datetime.now()
-                        df: pd.DataFrame = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[columns_dtypes.keys()]
+                        df: pd.DataFrame = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[
+                            list(columns_dtypes.keys())
+                        ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        checkAuth(df, destpath)
-                        df.drop(
-                            df.columns.difference(colNames), 1, inplace=True,
-                        )
-                        df.insert(12, "Remarks", "")
-                        df.insert(0, "S. No.", 0)
-                        df["S. No."] = df.index + 1
-                        df.rename(
-                            columns={
-                                "See Also": "Additional Details",
-                                "Plugin Name": "Vulnerability Name",
-                                "Plugin": "Plugin ID",
-                            },
-                            inplace=True,
-                        )
+                        if checkAuthOpt:
+                            checkAuth(df, destpath)
+                        customizeCols(df, colNames)
                         normalizeSSL(df)
                         normalizeMisc(df)
                         stripOutput(df)
                         writeExcel(df, destpath)
                         timeEnd: datetime = datetime.now()
-                        msec: int = (timeEnd - timeStart).total_seconds() * 1000
+                        msec = (timeEnd - timeStart).total_seconds() * 1000
                         print("Excel file written in {:.0f}ms...\n".format(msec))
 
-                    except ValueError:
+                    except:
                         exception: tuple = sys.exc_info()
                         print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
+
+
+def customizeCols(df, colNames):
+    df.drop(
+        df.columns.difference(colNames), 1, inplace=True,
+    )
+    df.insert(12, "Remarks", "")
+    df.insert(0, "S. No.", 0)
+    df["S. No."] = df.index + 1
+    df.rename(
+        columns={"See Also": "Additional Details", "Plugin Name": "Vulnerability Name", "Plugin": "Plugin ID",},
+        inplace=True,
+    )
 
 
 def writeExcel(df, destpath):
@@ -141,7 +144,7 @@ def _worksheetFormat(worksheet, writer, df):
         worksheet.set_column(7, 10, 35)  # Columns 8 -> 11
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
         worksheet.set_column(12, 12, 20, writer.book.add_format({"align": "fill"}))
-        
+
     # create list of dicts for header names
     #  (columns property accepts {'header': value} as header name)
     col_names = [{"header": col_name} for col_name in df.columns]
@@ -174,14 +177,14 @@ def stripOutput(df: pd.DataFrame):
 
 
 def checkAuth(df: pd.DataFrame, destpath):
-    destpath: str = f"{destpath}-errors.txt"
+    destpath = f"{destpath}-errors.txt"
     try:
         if os.path.exists(destpath):
             os.remove(destpath)
     except:
         pass
 
-    plugins: list = [
+    plugins = [
         "Authentication Failure(s) for Provided Credentials",
         "SSH Commands Require Privilege Escalation",
         "Authentication Failure - Local Checks Not Run",
