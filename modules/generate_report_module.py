@@ -90,8 +90,7 @@ def generate_report(path, skip=True, checkAuthOpt=True):
                         ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        if checkAuthOpt:
-                            checkAuth(df, destpath)
+                        checkAuth(df, destpath, checkAuthOpt)
                         customizeCols(df, colNames)
                         normalizeSSL(df)
                         normalizeMisc(df)
@@ -176,43 +175,44 @@ def stripOutput(df: pd.DataFrame):
         pass
 
 
-def checkAuth(df: pd.DataFrame, destpath):
+def checkAuth(df: pd.DataFrame, destpath, enable: bool):
     destpath = f"{destpath}-errors.txt"
     try:
         if os.path.exists(destpath):
             os.remove(destpath)
     except:
         pass
-
-    plugins = [
-        "Authentication Failure(s) for Provided Credentials",
-        "SSH Commands Require Privilege Escalation",
-        "Authentication Failure - Local Checks Not Run",
-        "Authentication Success with Intermittent Failure",
-    ]
-    acknowledged: dict = {}
-    for plugin in plugins:
-        for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
-            acknowledged.update({namedTuple._1: True})
-            txtFile = open(destpath, "a")
-            txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._13}\n\n")
-            txtFile.close()
-            print(f"{plugin} IP Address: {namedTuple._1}")
-
-    for ipaddr in df["IP Address"].unique():
-        if ipaddr not in acknowledged:
-            for namedTuple in df.loc[
-                (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
-                "IP Address":"Plugin Text",
-            ].itertuples():
+    
+    if enable: 
+        plugins = [
+            "Authentication Failure(s) for Provided Credentials",
+            "SSH Commands Require Privilege Escalation",
+            "Authentication Failure - Local Checks Not Run",
+            "Authentication Success with Intermittent Failure",
+        ]
+        acknowledged: dict = {}
+        for plugin in plugins:
+            for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
                 acknowledged.update({namedTuple._1: True})
+                txtFile = open(destpath, "a")
+                txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._13}\n\n")
+                txtFile.close()
+                print(f"{plugin} IP Address: {namedTuple._1}")
 
-    for ipaddr in df["IP Address"].unique():
-        if ipaddr not in acknowledged:
-            txtFile = open(destpath, "a")
-            txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
-            txtFile.close()
-            print(f"(No Authentication Detected) IP Address: {ipaddr}")
+        for ipaddr in df["IP Address"].unique():
+            if ipaddr not in acknowledged:
+                for namedTuple in df.loc[
+                    (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
+                    "IP Address":"Plugin Text",
+                ].itertuples():
+                    acknowledged.update({namedTuple._1: True})
+
+        for ipaddr in df["IP Address"].unique():
+            if ipaddr not in acknowledged:
+                txtFile = open(destpath, "a")
+                txtFile.write(f"(No Authentication Detected) IP Address: {ipaddr}\n\n")
+                txtFile.close()
+                print(f"(No Authentication Detected) IP Address: {ipaddr}")
 
 
 def normalizeSSL(df: pd.DataFrame):
