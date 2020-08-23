@@ -248,6 +248,7 @@ def normalizeMisc(df: pd.DataFrame):
         "Unencrypted Telnet Server": "Disable Telnet and use SSH",
         "RPC portmapper Service Detection": "Disable RPC portmapper service",
         "FTP Server Detection": "Use secure alternative SFTP and disable this service",
+        "TFTP Server Detection": "Use secure alternative SFTP and disable this service",
         "DHCP Server Detection": "Disable DHCP service",
         "NFS Server Superfluous": "Disable this service",
         "NFS Share Export List": "Disable this service",
