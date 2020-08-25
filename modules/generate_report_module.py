@@ -253,7 +253,13 @@ def normalizeMisc(df: pd.DataFrame):
         "DHCP Server Detection": "Disable DHCP service",
         "NFS Server Superfluous": "Disable this service",
         "NFS Share Export List": "Disable this service",
+        "CDE Subprocess Control Service (dtspcd) Detection": "Disable this service",
+        "Identd Service Detection": "Disable this service",
+        "Systat Service Remote Information Disclosure": "Disable this service",
         "RPC rstatd Service Detection": "Disable this service",
+        "RPC sprayd Service In Use": "Disable this service",
+        "Sendmail Server Detected": "Disable this service",
+        "RPC rusers Remote Information Disclosure": "Disable this service", 
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
     }
     replace: str = "This test is informational only and does not denote any security problem."
