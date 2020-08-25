@@ -1,8 +1,6 @@
 import pandas as pd
 import sys
 import os
-import dask.array as da
-import dask.dataframe as dd
 
 columns_dtypes = {
     "Plugin": pd.Int64Dtype(),

@@ -249,6 +249,7 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC portmapper Service Detection": "Disable RPC portmapper service",
         "FTP Server Detection": "Use secure alternative SFTP and disable this service",
         "TFTP Server Detection": "Use secure alternative SFTP and disable this service",
+        "SNMP Protocol Version Detection": "Disable this service or upgrade to SNMPv3",
         "DHCP Server Detection": "Disable DHCP service",
         "NFS Server Superfluous": "Disable this service",
         "NFS Share Export List": "Disable this service",
