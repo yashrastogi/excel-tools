@@ -90,6 +90,7 @@ def generate_report(path, skip=True, checkAuthOpt=True):
                         ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
+                        checkPing(df)
                         checkAuth(df, destpath, checkAuthOpt)
                         customizeCols(df, colNames)
                         normalizeSSL(df)
@@ -174,6 +175,11 @@ def stripOutput(df: pd.DataFrame):
     except:
         pass
 
+def checkPing(df: pd.DataFrame):
+    for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", "IP Address":"Plugin Text"].itertuples():
+        if namedTuple._13 != """Plugin Output: The remote host is up
+The remote host replied to an ICMP echo packet""":
+            print(f"Remote host dead: {namedTuple._1}")
 
 def checkAuth(df: pd.DataFrame, destpath, enable: bool):
     destpath = f"{destpath}-errors.txt"
