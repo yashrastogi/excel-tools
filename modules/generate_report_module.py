@@ -176,15 +176,17 @@ def stripOutput(df: pd.DataFrame):
         pass
 
 def checkPing(df: pd.DataFrame):
+    pingSuccessText = """Plugin Output: The remote host is up
+The remote host replied to an ICMP echo packet"""
     printed: bool = False
     for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]].itertuples():
-        if not printed:
-            print("The following remote hosts were found DEAD:")
-            printed = True
-        if namedTuple._2 != """Plugin Output: The remote host is up
-The remote host replied to an ICMP echo packet""":
+        if namedTuple._2 != pingSuccessText:
+            if not printed:
+                print("\nThe following remote hosts were found DEAD:")
+                printed = True
             print(namedTuple._1)
-    print()
+    if printed:
+        print()
 
 def checkAuth(df: pd.DataFrame, destpath, enable: bool):
     destpath = f"{destpath}-errors.txt"
