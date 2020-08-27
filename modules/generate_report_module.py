@@ -124,7 +124,10 @@ def writeExcel(df, destpath):
         f"{destpath}.xlsx", engine="xlsxwriter", options={"strings_to_urls": False},
     ) as writer:
         df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
-        generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
+        try:
+            generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
+        except:
+            pass
         # table formatting
         _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
         writer.save()
@@ -176,11 +179,10 @@ def stripOutput(df: pd.DataFrame):
         pass
 
 def checkPing(df: pd.DataFrame):
-    pingSuccessText = """Plugin Output: The remote host is up
-The remote host replied to an ICMP echo packet"""
+    pingSuccessText = "Plugin Output: The remote host is up"
     printed: bool = False
     for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]].itertuples():
-        if namedTuple._2 != pingSuccessText:
+        if pingSuccessText not in namedTuple._2:
             if not printed:
                 print("\nThe following remote hosts were found DEAD:")
                 printed = True
