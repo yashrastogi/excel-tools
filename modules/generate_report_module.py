@@ -176,8 +176,8 @@ def stripOutput(df: pd.DataFrame):
         pass
 
 def checkPing(df: pd.DataFrame):
-    for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", "IP Address":"Plugin Text"].itertuples():
-        if namedTuple._13 != """Plugin Output: The remote host is up
+    for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]].itertuples():
+        if namedTuple._2 != """Plugin Output: The remote host is up
 The remote host replied to an ICMP echo packet""":
             print(f"Remote host dead: {namedTuple._1}")
 
