@@ -6,13 +6,16 @@ import sys
 
 
 def generate_report(path, skip=True, checkAuthOpt=True):
+    np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
     columns_dtypes = {
         "Plugin": pd.Int64Dtype(),
         "Plugin Name": pd.CategoricalDtype(ordered=False),
         "Family": pd.CategoricalDtype(ordered=False),
-        "Severity": pd.CategoricalDtype(categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False),
+        "Severity": pd.CategoricalDtype(
+            categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
+        ),
         "IP Address": "object",
-        "Protocol": pd.CategoricalDtype(categories=["TCP", "UDP"], ordered=False),
+        "Protocol": pd.CategoricalDtype(ordered=False),
         "Port": pd.Int64Dtype(),
         "Exploit?": pd.CategoricalDtype(ordered=False),
         "Repository": pd.CategoricalDtype(ordered=False),
@@ -45,7 +48,11 @@ def generate_report(path, skip=True, checkAuthOpt=True):
         "Plugin Publication Date": "object",
         "Plugin Modification Date": "object",
         "Exploit Ease": pd.CategoricalDtype(
-            categories=["Exploits are available", "No exploit is required", "No known exploits are available"],
+            categories=[
+                "Exploits are available",
+                "No exploit is required",
+                "No known exploits are available",
+            ],
             ordered=False,
         ),
         "Check Type": pd.CategoricalDtype(ordered=False),
@@ -103,34 +110,44 @@ def generate_report(path, skip=True, checkAuthOpt=True):
 
                     except:
                         exception: tuple = sys.exc_info()
-                        print(f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}")
+                        print(
+                            f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}"
+                        )
 
 
 def customizeCols(df, colNames):
     df.drop(
-        df.columns.difference(colNames), 1, inplace=True,
+        df.columns.difference(colNames),
+        1,
+        inplace=True,
     )
     df.insert(12, "Remarks", "")
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
     df.rename(
-        columns={"See Also": "Additional Details", "Plugin Name": "Vulnerability Name", "Plugin": "Plugin ID",},
+        columns={
+            "See Also": "Additional Details",
+            "Plugin Name": "Vulnerability Name",
+            "Plugin": "Plugin ID",
+        },
         inplace=True,
     )
 
 
 def writeExcel(df, destpath):
-    with pd.ExcelWriter(  # pylint: disable=abstract-class-instantiated
-        f"{destpath}.xlsx", engine="xlsxwriter", options={"strings_to_urls": False},
-    ) as writer:
-        df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
-        try:
-            generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
-        except:
-            pass
-        # table formatting
-        _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
-        writer.save()
+    writer = pd.ExcelWriter(
+        f"{destpath}.xlsx",
+        engine="xlsxwriter",
+        options={"strings_to_urls": False},
+    )
+    df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
+    try:
+        generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
+    except:
+        pass
+    # table formatting
+    _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
+    writer.save()
 
 
 def _worksheetFormat(worksheet, writer, df):
@@ -155,11 +172,17 @@ def _worksheetFormat(worksheet, writer, df):
     # add table with coordinates: first row, first col, last row, last col;
     #  header names or formating can be inserted into dict
     worksheet.add_table(
-        0, 0, df.shape[0], df.shape[1] - 1, {"columns": col_names, "style": "Table Style Medium 15"},
+        0,
+        0,
+        df.shape[0],
+        df.shape[1] - 1,
+        {"columns": col_names, "style": "Table Style Medium 15"},
     )
     # Edit Metadata
     writer.book.set_properties(
-        {"author": "Yash Rastogi",}
+        {
+            "author": "Yash Rastogi",
+        }
     )
 
 
@@ -173,15 +196,22 @@ def generatePortsDF(df: pd.DataFrame):
 def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters
     try:
-        df["Plugin Text"] = df["Plugin Text"].str.replace("Plugin Output: \n", " ").str.replace("Plugin Output: ", " ")
+        df["Plugin Text"] = (
+            df["Plugin Text"]
+            .str.replace("Plugin Output: \n", " ")
+            .str.replace("Plugin Output: ", " ")
+        )
         df["Plugin Text"] = [x[0:32760] for x in df["Plugin Text"]]
     except:
         pass
 
+
 def checkPing(df: pd.DataFrame):
     pingSuccessText = "Plugin Output: The remote host is up"
     printed: bool = False
-    for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]].itertuples():
+    for namedTuple in df.loc[
+        df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]
+    ].itertuples():
         if pingSuccessText not in namedTuple._2:
             if not printed:
                 print("\nThe following remote hosts were found DEAD:")
@@ -190,6 +220,7 @@ def checkPing(df: pd.DataFrame):
     if printed:
         print()
 
+
 def checkAuth(df: pd.DataFrame, destpath, enable: bool):
     destpath = f"{destpath}-errors.txt"
     try:
@@ -197,27 +228,39 @@ def checkAuth(df: pd.DataFrame, destpath, enable: bool):
             os.remove(destpath)
     except:
         pass
-    
-    if enable: 
+
+    if enable:
         plugins = [
             "Authentication Failure(s) for Provided Credentials",
             "SSH Commands Require Privilege Escalation",
             "Authentication Failure - Local Checks Not Run",
             "Authentication Success with Intermittent Failure",
+            "Target Credential Issues by Authentication Protocol - Intermittent Authentication Failure",
         ]
         acknowledged: dict = {}
         for plugin in plugins:
-            for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
+            for namedTuple in df.loc[
+                df["Plugin Name"] == plugin, "IP Address":"Plugin Text"
+            ].itertuples():
                 acknowledged.update({namedTuple._1: True})
                 txtFile = open(destpath, "a")
-                txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._13}\n\n")
+                txtFile.write(
+                    f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._13}\n\n"
+                )
                 txtFile.close()
                 print(f"{plugin} IP Address: {namedTuple._1}")
 
         for ipaddr in df["IP Address"].unique():
             if ipaddr not in acknowledged:
                 for namedTuple in df.loc[
-                    (df["IP Address"] == ipaddr) & (df["Plugin Name"] == "Authentication Success"),
+                    (df["IP Address"] == ipaddr)
+                    & (
+                        (df["Plugin Name"] == "Authentication Success")
+                        | (
+                            df["Plugin Name"]
+                            == "Target Credential Issues by Authentication Protocol - No Issues Found"
+                        )
+                    ),
                     "IP Address":"Plugin Text",
                 ].itertuples():
                     acknowledged.update({namedTuple._1: True})
@@ -274,7 +317,7 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC rstatd Service Detection": "Disable this service",
         "RPC sprayd Service In Use": "Disable this service",
         "Sendmail Server Detected": "Disable this service",
-        "RPC rusers Remote Information Disclosure": "Disable this service", 
+        "RPC rusers Remote Information Disclosure": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
     }
     replace: str = "This test is informational only and does not denote any security problem."
@@ -283,13 +326,17 @@ def normalizeMisc(df: pd.DataFrame):
         try:
             df.loc[df["Vulnerability Name"] == key, "Severity"] = "High"
             df.loc[df["Vulnerability Name"] == key, "Solution"] = high_with_sol[key]
-            df.loc[df["Vulnerability Name"] == key, "Remarks"] = "Non-compliant as per MBSS Point 35"
+            df.loc[
+                df["Vulnerability Name"] == key, "Remarks"
+            ] = "Non-compliant as per MBSS Point 35"
             df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(replace, "")
         except:
             pass
 
     normalize_plugins: dict = {
-        "Info": ["SMB Signing not required",],
+        "Info": [
+            "SMB Signing not required",
+        ],
         # "Medium": ["IPMI v2.0 Password Hash Disclosure",],
     }
 
@@ -303,11 +350,15 @@ def normalizeMisc(df: pd.DataFrame):
     try:
         conditions = (
             (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
-            & ~df["Plugin Text"].str.contains("This combination of host and port requires TLS", na=False)
+            & ~df["Plugin Text"].str.contains(
+                "This combination of host and port requires TLS", na=False
+            )
             & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
             & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
             & ~df["Plugin Text"].str.contains("Location: https://", na=False)
-            & ~df["Plugin Text"].str.contains("You're speaking plain HTTP to an SSL-enabled server port.", na=False)
+            & ~df["Plugin Text"].str.contains(
+                "You're speaking plain HTTP to an SSL-enabled server port.", na=False
+            )
         )
         temp = df.loc[conditions, "Description"]
         df.loc[conditions, ["Severity", "Solution", "Remarks", "Description"]] = [
