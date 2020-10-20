@@ -5,7 +5,7 @@ import numpy as np
 import sys
 
 
-def generate_report(path, skip=True, checkAuthOpt=True):
+def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
     np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
     columns_dtypes = {
         "Plugin": pd.Int64Dtype(),
@@ -100,7 +100,7 @@ def generate_report(path, skip=True, checkAuthOpt=True):
                         checkPing(df)
                         checkAuth(df, destpath, checkAuthOpt)
                         customizeCols(df, colNames)
-                        normalizeSSL(df)
+                        normalizeSSL(df, internetFacing)
                         normalizeMisc(df)
                         stripOutput(df)
                         writeExcel(df, destpath)
@@ -273,24 +273,45 @@ def checkAuth(df: pd.DataFrame, destpath, enable: bool):
                 print(f"(No Authentication Detected) IP Address: {ipaddr}")
 
 
-def normalizeSSL(df: pd.DataFrame):
-    plugins: dict = {
-        "Info": ["SSL Self-Signed Certificate", "SSL Certificate Cannot Be Trusted"],
-        "Low": [
-            "SSL Medium Strength Cipher Suites Supported (SWEET32)",
-            "SSLv3 Padding Oracle On Downgraded Legacy Encryption Vulnerability (POODLE)",
-            "SSL Certificate Signed Using Weak Hashing Algorithm",
-            "SSL Weak Cipher Suites Supported",
-            "SSL/TLS EXPORT_RSA <= 512-bit Cipher Suites Supported (FREAK)",
-            "SSL Null Cipher Suites Supported",
-            "SSL Certificate Fails to Adhere to Basic Constraints / Key Usage Extensions",
-            "SSL DROWN Attack Vulnerability (Decrypting RSA with Obsolete and Weakened eNcryption)",
-            "SSL Certificate Chain Contains Weak RSA Keys",
-            "SSL / TLS Renegotiation Handshakes MiTM Plaintext Data Injection",
-            "SSL RC4 Cipher Suites Supported (Bar Mitzvah)",
-        ],
-        "Medium": ["SSL Version 2 and 3 Protocol Detection", "SSL Certificate Expiry"],
-    }
+def normalizeSSL(df: pd.DataFrame, internetFacing: bool):
+    plugins: dict = {}
+    if internetFacing:
+        plugins = {
+            "Info": [],
+            "Low": [
+                "SSL Medium Strength Cipher Suites Supported (SWEET32)",
+                "SSL Certificate Signed Using Weak Hashing Algorithm",
+                "SSL Weak Cipher Suites Supported",
+                "SSL/TLS EXPORT_RSA <= 512-bit Cipher Suites Supported (FREAK)",
+                "SSL Null Cipher Suites Supported",
+                "SSL Certificate Fails to Adhere to Basic Constraints / Key Usage Extensions",
+                "SSL DROWN Attack Vulnerability (Decrypting RSA with Obsolete and Weakened eNcryption)",
+                "SSL Certificate Chain Contains Weak RSA Keys",
+                "SSL / TLS Renegotiation Handshakes MiTM Plaintext Data Injection",
+                "SSL RC4 Cipher Suites Supported (Bar Mitzvah)",
+            ],
+            "Medium": [],
+            "High": ["SSL Certificate Expiry"],
+        }
+    else:
+        plugins = {
+            "Info": ["SSL Self-Signed Certificate", "SSL Certificate Cannot Be Trusted"],
+            "Low": [
+                "SSL Medium Strength Cipher Suites Supported (SWEET32)",
+                "SSLv3 Padding Oracle On Downgraded Legacy Encryption Vulnerability (POODLE)",
+                "SSL Certificate Signed Using Weak Hashing Algorithm",
+                "SSL Weak Cipher Suites Supported",
+                "SSL/TLS EXPORT_RSA <= 512-bit Cipher Suites Supported (FREAK)",
+                "SSL Null Cipher Suites Supported",
+                "SSL Certificate Fails to Adhere to Basic Constraints / Key Usage Extensions",
+                "SSL DROWN Attack Vulnerability (Decrypting RSA with Obsolete and Weakened eNcryption)",
+                "SSL Certificate Chain Contains Weak RSA Keys",
+                "SSL / TLS Renegotiation Handshakes MiTM Plaintext Data Injection",
+                "SSL RC4 Cipher Suites Supported (Bar Mitzvah)",
+            ],
+            "Medium": ["SSL Version 2 and 3 Protocol Detection", "SSL Certificate Expiry"],
+            "High": [],
+        }
 
     for key in plugins:
         for plugin in plugins[key]:
