@@ -232,6 +232,7 @@ def checkAuth(df: pd.DataFrame, destpath, enable: bool):
     if enable:
         plugins = [
             "Authentication Failure(s) for Provided Credentials",
+            "Target Credential Status by Authentication Protocol - Failure for Provided Credentials",
             "SSH Commands Require Privilege Escalation",
             "Authentication Failure - Local Checks Not Run",
             "Authentication Success with Intermittent Failure",
