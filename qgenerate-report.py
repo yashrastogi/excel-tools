@@ -25,15 +25,8 @@ def main():
         action="store_true",
         default=False,
     )
-    parser.add_argument(
-        "-d",
-        "--disable-auth",
-        help="disable authentication checks",
-        action="store_true",
-        default=False,
-    )
     args = parser.parse_args()
-    generate_report(args.path, not args.erase, not args.disable_auth, args.internet)
+    generate_report(args.path, not args.erase, False, args.internet)
 
 
 def dir_path(path):
