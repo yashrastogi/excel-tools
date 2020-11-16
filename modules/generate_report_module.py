@@ -339,6 +339,7 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC rstatd Service Detection": "Disable this service",
         "RPC sprayd Service In Use": "Disable this service",
         "Sendmail Server Detected": "Disable this service",
+        "Echo Service Detection": "Disable this service",
         "RPC rusers Remote Information Disclosure": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
     }
