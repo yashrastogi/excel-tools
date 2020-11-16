@@ -98,7 +98,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
                         ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        checkPing(df)
+                        checkPing(df, destpath)
                         checkAuth(df, destpath, checkAuthOpt)
                         customizeCols(df, colNames)
                         normalizeSSL(df, internetFacing)
@@ -208,19 +208,24 @@ def stripOutput(df: pd.DataFrame):
         pass
 
 
-def checkPing(df: pd.DataFrame):
+def checkPing(df: pd.DataFrame, destpath):
+    destpath = f"{destpath}-ping.txt"
     pingSuccessText = "Plugin Output: The remote host is up"
     printed: bool = False
+    txtFile = open(destpath, "a")
     for namedTuple in df.loc[
         df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]
     ].itertuples():
         if pingSuccessText not in namedTuple._2:
             if not printed:
-                print("\nThe following remote hosts were found DEAD:")
+                print("\nThe following remote hosts were found unreachable:")
+                txtFile.write("\nThe following remote hosts were found unreachable:")
                 printed = True
             print(namedTuple._1)
+            txtFile.write(namedTuple._1)
     if printed:
         print()
+    txtFile.close()
 
 
 def checkAuth(df: pd.DataFrame, destpath, enable: bool):
