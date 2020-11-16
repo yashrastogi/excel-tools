@@ -219,10 +219,10 @@ def checkPing(df: pd.DataFrame, destpath):
         if pingSuccessText not in namedTuple._2:
             if not printed:
                 print("\nThe following remote hosts were found unreachable:")
-                txtFile.write("\nThe following remote hosts were found unreachable:")
+                txtFile.write("The following remote hosts were found unreachable:\n\n")
                 printed = True
+            txtFile.write(f'{namedTuple._1}\n')
             print(namedTuple._1)
-            txtFile.write(namedTuple._1)
     if printed:
         print()
     txtFile.close()
