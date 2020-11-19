@@ -9,26 +9,43 @@ from collections import namedtuple
 def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
     np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
     columns_dtypes = {
-        "Plugin": pd.Int64Dtype(),
+        "IP Address": "object",
         "Plugin Name": pd.CategoricalDtype(ordered=False),
-        "Family": pd.CategoricalDtype(ordered=False),
         "Severity": pd.CategoricalDtype(
             categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
         ),
-        "IP Address": "object",
-        "Protocol": pd.CategoricalDtype(ordered=False),
+        "Protocol": pd.CategoricalDtype(
+            categories=[
+                "UDP",
+                "TCP",
+                "ICMP",
+                "ARP"
+            ],
+            ordered=False,
+        ),
         "Port": pd.Int64Dtype(),
-        "Exploit?": pd.CategoricalDtype(ordered=False),
-        "Repository": pd.CategoricalDtype(ordered=False),
-        "MAC Address": "object",
-        "DNS Name": "object",
-        "NetBIOS Name": "object",
-        "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
         "Synopsis": "object",
         "Description": "object",
         "Solution": "object",
         "Plugin Text": "object",
         "See Also": "object",
+        "CVE": "object",
+        "Exploit Ease": pd.CategoricalDtype(
+            categories=[
+                "Exploits are available",
+                "No exploit is required",
+                "No known exploits are available",
+            ],
+            ordered=False,
+        ),
+        "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
+        "Plugin": pd.Int64Dtype(),
+        "Family": pd.CategoricalDtype(ordered=False),
+        "Exploit?": pd.CategoricalDtype(ordered=False),
+        "Repository": pd.CategoricalDtype(ordered=False),
+        "MAC Address": "object",
+        "DNS Name": "object",
+        "NetBIOS Name": "object",
         "Risk Factor": pd.CategoricalDtype(ordered=False),
         "STIG Severity": pd.CategoricalDtype(ordered=False),
         "Vulnerability Priority Rating": "float64",
@@ -39,7 +56,6 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
         "CVSS V2 Vector": "object",
         "CVSS V3 Vector": "object",
         "CPE": "object",
-        "CVE": "object",
         "BID": "object",
         "Cross References": "object",
         "First Discovered": pd.CategoricalDtype(ordered=False),
@@ -48,14 +64,6 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
         "Patch Publication Date": "object",
         "Plugin Publication Date": "object",
         "Plugin Modification Date": "object",
-        "Exploit Ease": pd.CategoricalDtype(
-            categories=[
-                "Exploits are available",
-                "No exploit is required",
-                "No known exploits are available",
-            ],
-            ordered=False,
-        ),
         "Check Type": pd.CategoricalDtype(ordered=False),
         "Version": "object",
     }
@@ -339,17 +347,17 @@ def normalizeMisc(df: pd.DataFrame):
 
     high_with_sol: dict = {
         "Microsoft Windows SMB Service Detection": ModRowItem(
-            "", "A file / print sharing service is listening on the remote host. According to MBSS point no. 35, only secure services must be enabled.", "", ""
+            "", "A file / print sharing service is listening on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""
         ),
         "Unencrypted Telnet Server": ModRowItem(
             "",
-            "It was observed that a Telnet server is listening on a remote port which transmits data in clear text",
+            "It was observed that a Telnet server is listening on a remote port which transmits data in clear text\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
             "The remote host is running a Telnet server over an unencrypted channel",
-            "Disable the Telnet service and use SSH instead",
+            "It is recommended to disable the Telnet service and use SSH instead",
         ),
         "RPC portmapper Service Detection": ModRowItem(
             "",
-            "It was observed that RPC portmapper service is running on a remote port",
+            "It was observed that RPC portmapper service is running on a remote port\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
             "The RPC portmapper is running on this port",
             "If RPC services are not used on this machine, close this service. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
@@ -378,7 +386,7 @@ def normalizeMisc(df: pd.DataFrame):
             "It is recommended to use FTPS (FTP over SSL/TLS) or SFTP (part of the SSH suite)",
         ),
         # "TFTP Server Detection": ModRowItem(
-        #     "", "", "", "Use secure alternative SFTP and disable this service"
+        #     "", "", "", "Use secure alternative SFTP and It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"
         # ),
         "TFTP Daemon Detection": ModRowItem(
             "",
@@ -387,35 +395,35 @@ def normalizeMisc(df: pd.DataFrame):
             "If TFTP services are not used on this machine, close or uninstall this service. Otherwise restrict access to trusted sources only",
         ),
         # "SNMP Protocol Version Detection": ModRowItem(
-        #     "Upgrade to SNMPv3 or disable this service", "", "", ""
+        #     "Upgrade to SNMPv3 or It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines", "", "", ""
         # ),
         # "DHCP Server Detection": ModRowItem("Disable DHCP service", "", "", ""),
         "NFS Server Superfluous": ModRowItem("", "It was observed that NFS Service is running on the remote port.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
         "NFS Share Export List": ModRowItem("", "The remote NFS server exports a list of shares.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
         "CDE Subprocess Control Service (dtspcd) Detection": ModRowItem(
             "",
-            "It was observed that dtspcd service is running on the remote port",
+            "It was observed that dtspcd service is running on the remote port\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
             "",
-            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
+            "It is recommended to It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
-        "Identd Service Detection": ModRowItem("", "", "", "Disable this service"),
+        "Identd Service Detection": ModRowItem("", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
         "Systat Service Remote Information Disclosure": ModRowItem(
-            "", "", "", "Disable this service"
+            "", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"
         ),
         "RPC sprayd Service In Use": ModRowItem("", "", "", ""),
         "Daytime Service Detection": ModRowItem("", "A daytime service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
-        "Sendmail Server Detected": ModRowItem("", "", "", "Disable this service"),
+        "Sendmail Server Detected": ModRowItem("", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
         "RPC rusers Remote Information Disclosure": ModRowItem(
             "",
             "It is possible to enumerate logged in users.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
             "",
             "It is recommended to close this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
-        "Finger Service Remote Information Disclosure": ModRowItem("", "", "", "Disable this service"),
+        "Finger Service Remote Information Disclosure": ModRowItem("", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
         "rsync Service Detection": ModRowItem(
             "", "A rsync service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", "It is recommended to close the service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines."
         ),
-        "Echo Service Detection": ModRowItem("", "An echo service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", "Disable this service"),
+        "Echo Service Detection": ModRowItem("", "An echo service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
         "Chargen UDP Service Remote DoS": ModRowItem("", "The remote host is running a 'chargen' service.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
     }
     replace: str = "This test is informational only and does not denote any security problem."

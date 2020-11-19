@@ -8,7 +8,7 @@ columns_dtypes = {
     "Family": pd.CategoricalDtype(ordered=False),
     "Severity": pd.CategoricalDtype(categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False),
     "IP Address": "object",
-    "Protocol": pd.CategoricalDtype(categories=["TCP", "UDP"], ordered=False),
+    "Protocol": pd.CategoricalDtype(ordered=False),
     "Port": pd.Int64Dtype(),
     "Exploit?": pd.CategoricalDtype(ordered=False),
     "Repository": pd.CategoricalDtype(ordered=False),

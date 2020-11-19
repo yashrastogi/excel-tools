@@ -15,7 +15,15 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
             categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
         ),
         "IP Address": "object",
-        "Protocol": pd.CategoricalDtype(ordered=False),
+        "Protocol": pd.CategoricalDtype(
+            categories=[
+                "UDP",
+                "TCP",
+                "ICMP",
+                "ARP"
+            ],
+            ordered=False,
+        ),
         "Port": pd.Int64Dtype(),
         "Exploit?": pd.CategoricalDtype(ordered=False),
         "Repository": pd.CategoricalDtype(ordered=False),
