@@ -12,7 +12,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
         "IP Address": "object",
         "Plugin Name": pd.CategoricalDtype(ordered=False),
         "Severity": pd.CategoricalDtype(
-            categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
+            categories=["High", "Info", "Low", "Medium", "Critical", "Not Available"], ordered=False
         ),
         "Protocol": pd.CategoricalDtype(ordered=False),
         "Port": pd.Int64Dtype(),
@@ -27,6 +27,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
                 "Exploits are available",
                 "No exploit is required",
                 "No known exploits are available",
+                "Not Available"
             ],
             ordered=False,
         ),
@@ -111,6 +112,8 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
                         # df = df[df["Severity"] != "Info"]
                         print('Stripping Plugin Output.')
                         stripOutput(df)
+                        print('Filling NA in empty columns.')
+                        fillNA(df)
                         print('Writing Excel.', end=' ')
                         writeExcel(df, destpath)
                         timeEnd: datetime = datetime.now()
@@ -123,7 +126,10 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
                             f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}"
                         )
 
-
+def fillNA(df):
+    df.loc[:,'Additional Details':'Exploit Frameworks'].replace(np.nan, 'Not Available', inplace=True)
+    df['Exploit Ease'].fillna('Not Available', inplace=True)
+    
 def customizeCols(df, colNames):
     # df.drop(
     #     df.columns.difference(colNames),
