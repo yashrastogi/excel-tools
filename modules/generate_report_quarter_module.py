@@ -14,15 +14,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
         "Severity": pd.CategoricalDtype(
             categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
         ),
-        "Protocol": pd.CategoricalDtype(
-            categories=[
-                "UDP",
-                "TCP",
-                "ICMP",
-                "ARP"
-            ],
-            ordered=False,
-        ),
+        "Protocol": pd.CategoricalDtype(ordered=False),
         "Port": pd.Int64Dtype(),
         "Synopsis": "object",
         "Description": "object",
@@ -38,7 +30,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
             ],
             ordered=False,
         ),
-        "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
+        "Exploit Frameworks": "object",
         "Plugin": pd.Int64Dtype(),
         "Family": pd.CategoricalDtype(ordered=False),
         "Exploit?": pd.CategoricalDtype(ordered=False),
@@ -58,8 +50,8 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
         "CPE": "object",
         "BID": "object",
         "Cross References": "object",
-        "First Discovered": pd.CategoricalDtype(ordered=False),
-        "Last Observed": pd.CategoricalDtype(ordered=False),
+        "First Discovered": "object",
+        "Last Observed": "object",
         "Vuln Publication Date": "object",
         "Patch Publication Date": "object",
         "Plugin Publication Date": "object",
@@ -131,7 +123,7 @@ def customizeCols(df, colNames):
     #     1,
     #     inplace=True,
     # )
-    df.insert(12, "Remarks", "")
+    # df.insert(12, "Remarks", "")
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
     df.rename(
@@ -234,7 +226,7 @@ def checkPing(df: pd.DataFrame, destpath):
                 print("\nThe following remote hosts were found unreachable:")
                 txtFile.write("The following remote hosts were found unreachable:\n\n")
                 printed = True
-            txtFile.write(f'{namedTuple._1}\n')
+            txtFile.write(f"{namedTuple._1}\n")
             print(namedTuple._1)
     if printed:
         print()
@@ -347,7 +339,10 @@ def normalizeMisc(df: pd.DataFrame):
 
     high_with_sol: dict = {
         "Microsoft Windows SMB Service Detection": ModRowItem(
-            "", "A file / print sharing service is listening on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""
+            "",
+            "A file / print sharing service is listening on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "",
         ),
         "Unencrypted Telnet Server": ModRowItem(
             "",
@@ -398,33 +393,79 @@ def normalizeMisc(df: pd.DataFrame):
         #     "Upgrade to SNMPv3 or It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines", "", "", ""
         # ),
         # "DHCP Server Detection": ModRowItem("Disable DHCP service", "", "", ""),
-        "NFS Server Superfluous": ModRowItem("", "It was observed that NFS Service is running on the remote port.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
-        "NFS Share Export List": ModRowItem("", "The remote NFS server exports a list of shares.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
+        "NFS Server Superfluous": ModRowItem(
+            "",
+            "It was observed that NFS Service is running on the remote port.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "",
+        ),
+        "NFS Share Export List": ModRowItem(
+            "",
+            "The remote NFS server exports a list of shares.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "",
+        ),
         "CDE Subprocess Control Service (dtspcd) Detection": ModRowItem(
             "",
             "It was observed that dtspcd service is running on the remote port\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
             "",
             "It is recommended to It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
-        "Identd Service Detection": ModRowItem("", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
+        "Identd Service Detection": ModRowItem(
+            "",
+            "",
+            "",
+            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
+        ),
         "Systat Service Remote Information Disclosure": ModRowItem(
-            "", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"
+            "",
+            "",
+            "",
+            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
         "RPC sprayd Service In Use": ModRowItem("", "", "", ""),
-        "Daytime Service Detection": ModRowItem("", "A daytime service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
-        "Sendmail Server Detected": ModRowItem("", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
+        "Daytime Service Detection": ModRowItem(
+            "",
+            "A daytime service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "",
+        ),
+        "Sendmail Server Detected": ModRowItem(
+            "",
+            "",
+            "",
+            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
+        ),
         "RPC rusers Remote Information Disclosure": ModRowItem(
             "",
             "It is possible to enumerate logged in users.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
             "",
             "It is recommended to close this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
-        "Finger Service Remote Information Disclosure": ModRowItem("", "", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
-        "rsync Service Detection": ModRowItem(
-            "", "A rsync service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", "It is recommended to close the service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines."
+        "Finger Service Remote Information Disclosure": ModRowItem(
+            "",
+            "",
+            "",
+            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
-        "Echo Service Detection": ModRowItem("", "An echo service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"),
-        "Chargen UDP Service Remote DoS": ModRowItem("", "The remote host is running a 'chargen' service.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.", "", ""),
+        "rsync Service Detection": ModRowItem(
+            "",
+            "A rsync service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "It is recommended to close the service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines.",
+        ),
+        "Echo Service Detection": ModRowItem(
+            "",
+            "An echo service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
+        ),
+        "Chargen UDP Service Remote DoS": ModRowItem(
+            "",
+            "The remote host is running a 'chargen' service.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "",
+        ),
     }
     replace: str = "This test is informational only and does not denote any security problem."
 
@@ -432,11 +473,13 @@ def normalizeMisc(df: pd.DataFrame):
         try:
             df.loc[df["Vulnerability Name"] == key, "Severity"] = "High"
             if high_with_sol[key].Remarks != "":
-                df.loc[df["Vulnerability Name"] == key, "Remarks"] = high_with_sol[key].Remarks  
+                df.loc[df["Vulnerability Name"] == key, "Remarks"] = high_with_sol[key].Remarks
             if high_with_sol[key].Synopsis != "":
-                df.loc[df["Vulnerability Name"] == key, "Synopsis"] = high_with_sol[key].Synopsis  
+                df.loc[df["Vulnerability Name"] == key, "Synopsis"] = high_with_sol[key].Synopsis
             if high_with_sol[key].Description != "":
-                df.loc[df["Vulnerability Name"] == key, "Description"] = high_with_sol[key].Description
+                df.loc[df["Vulnerability Name"] == key, "Description"] = high_with_sol[
+                    key
+                ].Description
             if high_with_sol[key].Solution != "":
                 df.loc[df["Vulnerability Name"] == key, "Solution"] = high_with_sol[key].Solution
             df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(replace, "")

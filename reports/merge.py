@@ -6,7 +6,9 @@ columns_dtypes = {
     "Plugin": pd.Int64Dtype(),
     "Plugin Name": pd.CategoricalDtype(ordered=False),
     "Family": pd.CategoricalDtype(ordered=False),
-    "Severity": pd.CategoricalDtype(categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False),
+    "Severity": pd.CategoricalDtype(
+        categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
+    ),
     "IP Address": "object",
     "Protocol": pd.CategoricalDtype(ordered=False),
     "Port": pd.Int64Dtype(),
@@ -33,17 +35,21 @@ columns_dtypes = {
     "CVE": "object",
     "BID": "object",
     "Cross References": "object",
-    "First Discovered": pd.CategoricalDtype(ordered=False),
-    "Last Observed": pd.CategoricalDtype(ordered=False),
+    "First Discovered": "object",
+    "Last Observed": "object",
     "Vuln Publication Date": "object",
     "Patch Publication Date": "object",
     "Plugin Publication Date": "object",
     "Plugin Modification Date": "object",
     "Exploit Ease": pd.CategoricalDtype(
-        categories=["Exploits are available", "No exploit is required", "No known exploits are available"],
+        categories=[
+            "Exploits are available",
+            "No exploit is required",
+            "No known exploits are available",
+        ],
         ordered=False,
     ),
-    "Exploit Frameworks": pd.CategoricalDtype(ordered=False),
+    "Exploit Frameworks": "object",
     "Check Type": pd.CategoricalDtype(ordered=False),
     "Version": "object",
 }
@@ -96,7 +102,10 @@ df = pd.DataFrame(columns=colNames).astype(columns_dtypes)
 for root, _, files in os.walk("./"):
     for file in files:
         if str(file).endswith(".csv"):
-            print("                                                                           ", end="\r")
+            print(
+                "                                                                           ",
+                end="\r",
+            )
             print(f"{file}", end="\r")
             df1 = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[colNames]
             df = pd.concat([df, df1])
