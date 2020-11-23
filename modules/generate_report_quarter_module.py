@@ -98,13 +98,20 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
                         ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
+                        print('Checking ping.')
                         checkPing(df, destpath)
+                        print('Checking authentication.')
                         checkAuth(df, destpath, checkAuthOpt)
+                        print('Customizing columns.')
                         customizeCols(df, colNames)
+                        print('Normalizing SSL.')
                         normalizeSSL(df, internetFacing)
+                        print('Normalizing Misc.')
                         normalizeMisc(df)
                         # df = df[df["Severity"] != "Info"]
+                        print('Stripping Plugin Output.')
                         stripOutput(df)
+                        print('Writing Excel.', end=' ')
                         writeExcel(df, destpath)
                         timeEnd: datetime = datetime.now()
                         msec = (timeEnd - timeStart).total_seconds() * 1000
@@ -148,6 +155,7 @@ def writeExcel(df, destpath):
     # except:
     #     pass
     # table formatting
+    print()
     _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
     writer.save()
 
