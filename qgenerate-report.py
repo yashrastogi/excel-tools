@@ -19,6 +19,9 @@ def main():
         "-e", "--erase", help="overwrite existing reports", action="store_true", default=False
     )
     parser.add_argument(
+        "-r", "--removeinfo", help="remove info", action="store_true", default=False
+    )
+    parser.add_argument(
         "-i",
         "--internet",
         help="normalize according to internet facing devices",
@@ -26,7 +29,7 @@ def main():
         default=False,
     )
     args = parser.parse_args()
-    generate_report(args.path, not args.erase, False, args.internet)
+    generate_report(args.path, not args.erase, False, args.internet, args.removeinfo)
 
 
 def dir_path(path):

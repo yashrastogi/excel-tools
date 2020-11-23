@@ -6,7 +6,7 @@ import sys
 from collections import namedtuple
 
 
-def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
+def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, removeinfo=False):
     np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
     columns_dtypes = {
         "IP Address": "object",
@@ -109,7 +109,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False):
                         normalizeSSL(df, internetFacing)
                         print('Normalizing Misc.')
                         normalizeMisc(df)
-                        # df = df[df["Severity"] != "Info"]
+                        if removeinfo: df = df[df["Severity"] != "Info"]
                         print('Stripping Plugin Output.')
                         stripOutput(df)
                         print('Filling NA in empty columns.')
