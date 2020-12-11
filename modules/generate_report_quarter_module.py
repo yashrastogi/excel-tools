@@ -127,7 +127,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                         )
 
 def fillNA(df):
-    df.loc[:,'Additional Details':'Exploit Frameworks'].replace(np.nan, 'Not Available', inplace=True)
+    df.loc[:,'Additional Details':'Exploit Frameworks'] = df.loc[:,'Additional Details':'Exploit Frameworks'].replace(np.nan, 'Not Available')
     df['Exploit Ease'].fillna('Not Available', inplace=True)
     
 def customizeCols(df, colNames):
@@ -223,7 +223,7 @@ def stripOutput(df: pd.DataFrame):
 
 
 def checkPing(df: pd.DataFrame, destpath):
-    destpath = f"{destpath}-ping.txt"
+    destpath = f"{destpath}-unreachable.txt"
     try:
         if os.path.exists(destpath):
             os.remove(destpath)
@@ -238,7 +238,6 @@ def checkPing(df: pd.DataFrame, destpath):
         if pingSuccessText not in namedTuple._2:
             if not printed:
                 print("\nThe following remote hosts were found unreachable:")
-                txtFile.write("The following remote hosts were found unreachable:\n\n")
                 printed = True
             txtFile.write(f"{namedTuple._1}\n")
             print(namedTuple._1)

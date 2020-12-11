@@ -22,10 +22,11 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
         "MAC Address": "object",
         "DNS Name": "object",
         "NetBIOS Name": "object",
-        "Plugin Text": "object",
+        "Exploit Frameworks": "object",
         "Synopsis": "object",
         "Description": "object",
         "Solution": "object",
+        "Plugin Text": "object",
         "See Also": "object",
         "Risk Factor": pd.CategoricalDtype(ordered=False),
         "STIG Severity": pd.CategoricalDtype(ordered=False),
@@ -54,7 +55,7 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
             ],
             ordered=False,
         ),
-        "Exploit Frameworks": "object",
+        
         "Check Type": pd.CategoricalDtype(ordered=False),
         "Version": "object",
     }
@@ -245,6 +246,7 @@ def checkAuth(df: pd.DataFrame, destpath, enable: bool):
             ].itertuples():
                 acknowledged.update({namedTuple._1: True})
                 txtFile = open(destpath, "a")
+                # print(namedTuple)
                 txtFile.write(
                     f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple._13}\n\n"
                 )
@@ -384,11 +386,11 @@ def normalizeMisc(df: pd.DataFrame):
             )
         )
         temp = df.loc[conditions, "Description"]
-        df.loc[conditions, ["Severity", "Solution", "Remarks", "Description"]] = [
+        df.loc[conditions, ["Severity", "Solution", "Remarks"]]  = [
             "High",
             "Migrate from HTTP to HTTPS",
-            "Non-compliant as per MBSS Point 35",
-            temp.str.replace(replace, ""),
+            "Non-compliant as per MBSS Point 35"
         ]
+        df.loc[conditions, ["Description"]] = temp.str.replace(replace, "")
     except:
         pass
