@@ -55,7 +55,6 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
             ],
             ordered=False,
         ),
-        
         "Check Type": pd.CategoricalDtype(ordered=False),
         "Version": "object",
     }
@@ -386,10 +385,10 @@ def normalizeMisc(df: pd.DataFrame):
             )
         )
         temp = df.loc[conditions, "Description"]
-        df.loc[conditions, ["Severity", "Solution", "Remarks"]]  = [
+        df.loc[conditions, ["Severity", "Solution", "Remarks"]] = [
             "High",
             "Migrate from HTTP to HTTPS",
-            "Non-compliant as per MBSS Point 35"
+            "Non-compliant as per MBSS Point 35",
         ]
         df.loc[conditions, ["Description"]] = temp.str.replace(replace, "")
     except:

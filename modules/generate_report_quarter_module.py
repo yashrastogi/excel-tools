@@ -27,7 +27,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                 "Exploits are available",
                 "No exploit is required",
                 "No known exploits are available",
-                "Not Available"
+                "Not Available",
             ],
             ordered=False,
         ),
@@ -99,22 +99,23 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                         ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        print('Checking ping.')
+                        print("Checking ping.")
                         checkPing(df, destpath)
-                        print('Checking authentication.')
+                        print("Checking authentication.")
                         checkAuth(df, destpath, checkAuthOpt)
-                        print('Customizing columns.')
+                        print("Customizing columns.")
                         customizeCols(df, colNames)
-                        print('Normalizing SSL.')
+                        print("Normalizing SSL.")
                         normalizeSSL(df, internetFacing)
-                        print('Normalizing Misc.')
+                        print("Normalizing Misc.")
                         normalizeMisc(df)
-                        if removeinfo: df = df[df["Severity"] != "Info"]
-                        print('Stripping Plugin Output.')
+                        if removeinfo:
+                            df = df[df["Severity"] != "Info"]
+                        print("Stripping Plugin Output.")
                         stripOutput(df)
-                        print('Filling NA in empty columns.')
+                        print("Filling NA in empty columns.")
                         fillNA(df)
-                        print('Writing Excel.', end=' ')
+                        print("Writing Excel.", end=" ")
                         writeExcel(df, destpath)
                         timeEnd: datetime = datetime.now()
                         msec = (timeEnd - timeStart).total_seconds() * 1000
@@ -126,10 +127,14 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                             f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}"
                         )
 
+
 def fillNA(df):
-    df.loc[:,'Additional Details':'Exploit Frameworks'] = df.loc[:,'Additional Details':'Exploit Frameworks'].replace(np.nan, 'Not Available')
-    df['Exploit Ease'].fillna('Not Available', inplace=True)
-    
+    df.loc[:, "Additional Details":"Exploit Frameworks"] = df.loc[
+        :, "Additional Details":"Exploit Frameworks"
+    ].replace(np.nan, "Not Available")
+    df["Exploit Ease"].fillna("Not Available", inplace=True)
+
+
 def customizeCols(df, colNames):
     # df.drop(
     #     df.columns.difference(colNames),
@@ -231,7 +236,6 @@ def checkPing(df: pd.DataFrame, destpath):
         pass
     pingSuccessText = "Plugin Output: The remote host is up"
     printed: bool = False
-    txtFile = open(destpath, "a")
     for namedTuple in df.loc[
         df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]
     ].itertuples():
@@ -239,11 +243,12 @@ def checkPing(df: pd.DataFrame, destpath):
             if not printed:
                 print("\nThe following remote hosts were found unreachable:")
                 printed = True
+            txtFile = open(destpath, "a")
             txtFile.write(f"{namedTuple._1}\n")
+            txtFile.close()
             print(namedTuple._1)
     if printed:
         print()
-    txtFile.close()
 
 
 def checkAuth(df: pd.DataFrame, destpath, enable: bool):

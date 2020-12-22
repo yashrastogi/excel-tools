@@ -12,12 +12,12 @@ def main():
         return
     else:
         path = sys.argv[1]
-    then = glob.glob(f'{path}/*.zip')
+    then = glob.glob(f"{path}/*.zip")
     while True:
-        now = glob.glob(f'{path}/*.zip')
+        now = glob.glob(f"{path}/*.zip")
         diff = set(now) - set(then)
         if len(diff) != 0:
-            print(list(diff)[0].split('/')[-1])
+            print(list(diff)[0].split("/")[-1])
             wb = xl.load_workbook(filename=f"{path}/VA/NNR-Tracker-Yash.xlsx")
             ws = wb.worksheets[0]
         then = now

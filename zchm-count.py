@@ -17,7 +17,10 @@ for ip in df["IP Address"].unique():
     sevCounts: pd.DataFrame = df.loc[(df["IP Address"] == ip)]["Severity"].value_counts()
     countDict = {key: 0 for key in columns}
     countDict.update(
-        {"IP Address": ip, "Total": sevCounts.sum() - sevCounts.loc[sevCounts.index == "Info"].sum(),}
+        {
+            "IP Address": ip,
+            "Total": sevCounts.sum() - sevCounts.loc[sevCounts.index == "Info"].sum(),
+        }
     )
     for key in countDict:
         if key in sevCounts.index:
