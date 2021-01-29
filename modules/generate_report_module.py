@@ -12,7 +12,7 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
         "Plugin Name": pd.CategoricalDtype(ordered=False),
         "Family": pd.CategoricalDtype(ordered=False),
         "Severity": pd.CategoricalDtype(
-            categories=["High", "Info", "Low", "Medium", "Critical"], ordered=False
+            categories=["Critical", "High", "Medium", "Low", "Info"], ordered=True
         ),
         "IP Address": "object",
         "Protocol": pd.CategoricalDtype(ordered=False),
@@ -92,18 +92,27 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
                     try:
                         print()
                         timeStart: datetime = datetime.now()
-                        df: pd.DataFrame = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[
+                        df = pd.read_csv(f"{root}/{file}", dtype=columns_dtypes)[
                             list(columns_dtypes.keys())
                         ]
+
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
+                        
                         checkPing(df)
+                        
                         checkAuth(df, destpath, checkAuthOpt)
+                        
                         customizeCols(df, colNames)
+                        
                         normalizeSSL(df, internetFacing)
+                        
                         normalizeMisc(df)
+                        
                         stripOutput(df)
+                        
                         writeExcel(df, destpath)
+                        
                         timeEnd: datetime = datetime.now()
                         msec = (timeEnd - timeStart).total_seconds() * 1000
                         print("Excel file written in {:.0f}ms...\n".format(msec))
@@ -121,9 +130,7 @@ def customizeCols(df, colNames):
         1,
         inplace=True,
     )
-    df.insert(12, "Remarks", "")
-    df.insert(0, "S. No.", 0)
-    df["S. No."] = df.index + 1
+    df.insert(len(df.columns), "Remarks", "")
     df.rename(
         columns={
             "See Also": "Additional Details",
@@ -140,6 +147,11 @@ def writeExcel(df, destpath):
         engine="xlsxwriter",
         options={"strings_to_urls": False},
     )
+
+    df.sort_values(["Severity", "Vulnerability Name"], ignore_index=True, inplace=True)
+    df.insert(0, "S. No.", 0)
+    df["S. No."] = df.index + 1
+    
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     try:
         generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
@@ -151,19 +163,25 @@ def writeExcel(df, destpath):
 
 
 def _worksheetFormat(worksheet, writer, df):
+    def get_col(colName):
+        count = -1
+        for col in df.columns:
+            count += 1
+            if col == colName:
+                break
+        return count
     worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
     if len(df.columns) > 12:
-        worksheet.set_column(7, 10, None, writer.book.add_format({"align": "fill"}))
         # set column widths
-        worksheet.set_column(0, 0, 5)  # S No.
-        worksheet.set_column(1, 1, 7)  # Plugin ID
-        worksheet.set_column(2, 2, 26)  # Vuln. Name
-        worksheet.set_column(4, 4, 12)  # IP Addr.
-        worksheet.set_column(5, 5, 4)  # Protocol
-        worksheet.set_column(6, 6, 6)  # Port
-        worksheet.set_column(7, 10, 35)  # Columns 8 -> 11
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
-        worksheet.set_column(12, 12, 20, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(get_col("Synopsis"), get_col("Plugin Text"), 35, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(get_col("S. No."), get_col("S. No."), 5)  # S No.
+        worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 7)  # Plugin ID
+        worksheet.set_column(get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41)  # Vuln. Name
+        worksheet.set_column(get_col("IP Address"), get_col("IP Address"), 12)  # IP Addr.
+        worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 4)  # Protocol
+        worksheet.set_column(get_col("Port"), get_col("Port"), 6)  # Port
+        worksheet.set_column(get_col("Additional Details"), get_col("Additional Details"), 20, writer.book.add_format({"align": "fill"}))
 
     # create list of dicts for header names
     #  (columns property accepts {'header': value} as header name)
@@ -297,7 +315,10 @@ def normalizeSSL(df: pd.DataFrame, internetFacing: bool):
         }
     else:
         plugins = {
-            "Info": ["SSL Self-Signed Certificate", "SSL Certificate Cannot Be Trusted"],
+            "Info": [
+                "SSL Self-Signed Certificate",
+                "SSL Certificate Cannot Be Trusted",
+            ],
             "Low": [
                 "SSL Medium Strength Cipher Suites Supported (SWEET32)",
                 "SSLv3 Padding Oracle On Downgraded Legacy Encryption Vulnerability (POODLE)",
@@ -311,7 +332,10 @@ def normalizeSSL(df: pd.DataFrame, internetFacing: bool):
                 "SSL / TLS Renegotiation Handshakes MiTM Plaintext Data Injection",
                 "SSL RC4 Cipher Suites Supported (Bar Mitzvah)",
             ],
-            "Medium": ["SSL Version 2 and 3 Protocol Detection", "SSL Certificate Expiry"],
+            "Medium": [
+                "SSL Version 2 and 3 Protocol Detection",
+                "SSL Certificate Expiry",
+            ],
             "High": [],
         }
 
@@ -325,7 +349,7 @@ def normalizeSSL(df: pd.DataFrame, internetFacing: bool):
 
 def normalizeMisc(df: pd.DataFrame):
     high_with_sol: dict = {
-        "Microsoft Windows SMB Service Detection": "Disable SMB and use secure alternatives like SFTP",
+        # "Microsoft Windows SMB Service Detection": "Disable SMB and use secure alternatives like SFTP",
         "Unencrypted Telnet Server": "Disable Telnet and use SSH",
         "RPC portmapper Service Detection": "Disable RPC portmapper service",
         "FTP Server Detection": "Use secure alternative SFTP and disable this service",
@@ -344,7 +368,9 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC rusers Remote Information Disclosure": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
     }
-    replace: str = "This test is informational only and does not denote any security problem."
+    replace: str = (
+        "This test is informational only and does not denote any security problem."
+    )
 
     for key in high_with_sol:
         try:
@@ -353,7 +379,9 @@ def normalizeMisc(df: pd.DataFrame):
             df.loc[
                 df["Vulnerability Name"] == key, "Remarks"
             ] = "Non-compliant as per MBSS Point 35"
-            df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(replace, "")
+            df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(
+                replace, "", regex=True
+            )
         except:
             pass
 
@@ -373,11 +401,16 @@ def normalizeMisc(df: pd.DataFrame):
 
     try:
         conditions = (
-            (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
+            (
+                df["Vulnerability Name"]
+                == "HyperText Transfer Protocol (HTTP) Information"
+            )
             & ~df["Plugin Text"].str.contains(
                 "This combination of host and port requires TLS", na=False
             )
-            & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
+            & ~df["Plugin Text"].str.contains(
+                "plain HTTP request was sent to HTTPS port", na=False
+            )
             & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
             & ~df["Plugin Text"].str.contains("Location: https://", na=False)
             & ~df["Plugin Text"].str.contains(
@@ -390,6 +423,6 @@ def normalizeMisc(df: pd.DataFrame):
             "Migrate from HTTP to HTTPS",
             "Non-compliant as per MBSS Point 35",
         ]
-        df.loc[conditions, ["Description"]] = temp.str.replace(replace, "")
+        df.loc[conditions, ["Description"]] = temp.str.replace(replace, "", regex=True)
     except:
         pass

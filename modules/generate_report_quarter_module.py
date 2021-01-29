@@ -12,7 +12,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
         "IP Address": "object",
         "Plugin Name": pd.CategoricalDtype(ordered=False),
         "Severity": pd.CategoricalDtype(
-            categories=["High", "Info", "Low", "Medium", "Critical", "Not Available"], ordered=False
+            categories=["Critical", "High", "Medium", "Low", "Info"], ordered=True
         ),
         "Protocol": pd.CategoricalDtype(ordered=False),
         "Port": pd.Int64Dtype(),
@@ -27,7 +27,7 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                 "Exploits are available",
                 "No exploit is required",
                 "No known exploits are available",
-                "Not Available",
+                "Not Available"
             ],
             ordered=False,
         ),
@@ -99,23 +99,22 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                         ]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        print("Checking ping.")
+                        print('Checking ping.')
                         checkPing(df, destpath)
-                        print("Checking authentication.")
+                        print('Checking authentication.')
                         checkAuth(df, destpath, checkAuthOpt)
-                        print("Customizing columns.")
+                        print('Customizing columns.')
                         customizeCols(df, colNames)
-                        print("Normalizing SSL.")
+                        print('Normalizing SSL.')
                         normalizeSSL(df, internetFacing)
-                        print("Normalizing Misc.")
+                        print('Normalizing Misc.')
                         normalizeMisc(df)
-                        if removeinfo:
-                            df = df[df["Severity"] != "Info"]
-                        print("Stripping Plugin Output.")
+                        if removeinfo: df = df[df["Severity"] != "Info"]
+                        print('Stripping Plugin Output.')
                         stripOutput(df)
-                        print("Filling NA in empty columns.")
+                        print('Filling NA in empty columns.')
                         fillNA(df)
-                        print("Writing Excel.", end=" ")
+                        print('Writing Excel.', end=' ')
                         writeExcel(df, destpath)
                         timeEnd: datetime = datetime.now()
                         msec = (timeEnd - timeStart).total_seconds() * 1000
@@ -127,14 +126,10 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                             f"Error: {exception[0]}. {exception[1]}, line: {exception[2].tb_lineno}"
                         )
 
-
 def fillNA(df):
-    df.loc[:, "Additional Details":"Exploit Frameworks"] = df.loc[
-        :, "Additional Details":"Exploit Frameworks"
-    ].replace(np.nan, "Not Available")
-    df["Exploit Ease"].fillna("Not Available", inplace=True)
-
-
+    df.loc[:,'Additional Details':'Exploit Frameworks'] = df.loc[:,'Additional Details':'Exploit Frameworks'].replace(np.nan, 'Not Available')
+    df['Exploit Ease'].fillna('Not Available', inplace=True)
+    
 def customizeCols(df, colNames):
     # df.drop(
     #     df.columns.difference(colNames),
@@ -143,7 +138,6 @@ def customizeCols(df, colNames):
     # )
     # df.insert(12, "Remarks", "")
     df.insert(0, "S. No.", 0)
-    df["S. No."] = df.index + 1
     df.rename(
         columns={
             "See Also": "Additional Details",
@@ -160,6 +154,8 @@ def writeExcel(df, destpath):
         engine="xlsxwriter",
         options={"strings_to_urls": False},
     )
+    df.sort_values(["Severity", "Vulnerability Name"], ignore_index=True, inplace=True)
+    df["S. No."] = df.index + 1
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     # try:
     #     generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
@@ -172,19 +168,26 @@ def writeExcel(df, destpath):
 
 
 def _worksheetFormat(worksheet, writer, df):
+    def get_col(colName):
+        count = -1
+        for col in df.columns:
+            count += 1
+            if col == colName:
+                break
+        return count
     worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
     if len(df.columns) > 12:
         # set column widths
-        worksheet.set_column(0, 0, 7)  # S No.
-        worksheet.set_column(1, 1, 7)  # Plugin ID
-        worksheet.set_column(2, 2, 26)  # Vuln. Name
-        worksheet.set_column(5, 5, 12)  # IP Addr.
-        worksheet.set_column(6, 6, 4)  # Protocol
-        worksheet.set_column(7, 7, 6)  # Port
         # worksheet.set_column(8, 10, 35)  # Columns 8 -> 11
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
-        worksheet.set_column(15, 17, 35, writer.book.add_format({"align": "fill"}))
-        worksheet.set_column(12, 12, 20)
+        worksheet.set_column(get_col("Synopsis"), get_col("Plugin Text"), 35, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(get_col("Additional Details"), get_col("Additional Details"), 20)
+        worksheet.set_column(get_col("S. No."), get_col("S. No."), 7)  # S No.
+        worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 7)  # Plugin ID
+        worksheet.set_column(get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41)  # Vuln. Name
+        worksheet.set_column(get_col("IP Address"), get_col("IP Address"), 12)  # IP Addr.
+        worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 4)  # Protocol
+        worksheet.set_column(get_col("Port"), get_col("Port"), 6)  # Port
 
     # create list of dicts for header names
     #  (columns property accepts {'header': value} as header name)
@@ -356,12 +359,12 @@ def normalizeMisc(df: pd.DataFrame):
     ModRowItem = namedtuple("ModRowItem", "Remarks Synopsis Description Solution")
 
     high_with_sol: dict = {
-        "Microsoft Windows SMB Service Detection": ModRowItem(
-            "",
-            "A file / print sharing service is listening on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
-            "",
-            "",
-        ),
+        # "Microsoft Windows SMB Service Detection": ModRowItem(
+        #     "",
+        #     "A file / print sharing service is listening on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+        #     "",
+        #     "",
+        # ),
         "Unencrypted Telnet Server": ModRowItem(
             "",
             "It was observed that a Telnet server is listening on a remote port which transmits data in clear text\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
@@ -380,12 +383,12 @@ def normalizeMisc(df: pd.DataFrame):
             "",
             "It is recommended to close the service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
         ),
-        "HyperText Transfer Protocol (HTTP) Information": ModRowItem(
-            "",
-            "It was observed that HTTP service is running on the remote port. HTTP is an unencrypted service.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
-            "This test gives some information about the remote HTTP protocol - the version used, whether HTTP Keep-Alive and HTTP pipelining are enabled, etc...",
-            "It is recommended to use HTTPS instead of HTTP",
-        ),
+        # "HyperText Transfer Protocol (HTTP) Information": ModRowItem(
+        #     "",
+        #     "It was observed that HTTP service is running on the remote port. HTTP is an unencrypted service.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+        #     "This test gives some information about the remote HTTP protocol - the version used, whether HTTP Keep-Alive and HTTP pipelining are enabled, etc...",
+        #     "It is recommended to use HTTPS instead of HTTP",
+        # ),
         "rlogin Service Detection": ModRowItem(
             "",
             "The rlogin service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
@@ -500,7 +503,7 @@ def normalizeMisc(df: pd.DataFrame):
                 ].Description
             if high_with_sol[key].Solution != "":
                 df.loc[df["Vulnerability Name"] == key, "Solution"] = high_with_sol[key].Solution
-            df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(replace, "")
+            df.loc[(df["Vulnerability Name"] == key), "Description"].str.replace(replace, "", regex=True)
         except:
             pass
 
@@ -516,25 +519,25 @@ def normalizeMisc(df: pd.DataFrame):
             except:
                 pass
 
-    # try:
-    #     conditions = (
-    #         (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
-    #         & ~df["Plugin Text"].str.contains(
-    #             "This combination of host and port requires TLS", na=False
-    #         )
-    #         & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
-    #         & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
-    #         & ~df["Plugin Text"].str.contains("Location: https://", na=False)
-    #         & ~df["Plugin Text"].str.contains(
-    #             "You're speaking plain HTTP to an SSL-enabled server port.", na=False
-    #         )
-    #     )
-    #     temp = df.loc[conditions, "Description"]
-    #     df.loc[conditions, ["Severity", "Solution", "Remarks", "Description"]] = [
-    #         "High",
-    #         "Migrate from HTTP to HTTPS",
-    #         "Non-compliant as per MBSS Point 35",
-    #         temp.str.replace(replace, ""),
-    #     ]
-    # except:
-    #     pass
+    try:
+        conditions = (
+            (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
+            & ~df["Plugin Text"].str.contains(
+                "This combination of host and port requires TLS", na=False
+            )
+            & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
+            & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
+            & ~df["Plugin Text"].str.contains("Location: https://", na=False)
+            & ~df["Plugin Text"].str.contains(
+                "You're speaking plain HTTP to an SSL-enabled server port.", na=False
+            )
+        )
+        temp = df.loc[conditions, "Description"]
+        df.loc[conditions, ["Severity", "Synopsis", "Description", "Solution"]] = [
+            "High",
+            "It was observed that HTTP service is running on the remote port. HTTP is an unencrypted service.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "This test gives some information about the remote HTTP protocol - the version used, whether HTTP Keep-Alive and HTTP pipelining are enabled, etc...",
+            "It is recommended to use HTTPS instead of HTTP"
+        ]
+    except:
+        pass
