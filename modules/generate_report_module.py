@@ -189,6 +189,7 @@ def _worksheetFormat(worksheet, writer, df):
         worksheet.set_column(get_col("IP Address"), get_col("IP Address"), 12)  # IP Addr.
         worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 4)  # Protocol
         worksheet.set_column(get_col("Port"), get_col("Port"), 6)  # Port
+        worksheet.set_column(get_col("Severity"), get_col("Severity"), 10, writer.book.add_format({"align": "center"}))  # Severity
         worksheet.set_column(get_col("Additional Details"), get_col("Additional Details"), 20, writer.book.add_format({"align": "fill"}))
 
     # create list of dicts for header names
@@ -202,8 +203,14 @@ def _worksheetFormat(worksheet, writer, df):
         0,
         df.shape[0],
         df.shape[1] - 1,
-        {"columns": col_names, "style": "Table Style Medium 15"},
+        {"columns": col_names, "style": "Table Style Light 8"}
     )
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Critical"', 'format': writer.book.add_format({'bg_color': '#ff0000', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"High"', 'format': writer.book.add_format({'bg_color': '#ffc000'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Medium"', 'format': writer.book.add_format({'bg_color': '#ffff00'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Low"', 'format': writer.book.add_format({'bg_color': '#92d050'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Info"', 'format': writer.book.add_format({'bg_color': '#0070c0', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, 0, len(df), len(df.columns)-1, {'type': 'formula', 'criteria': 'True', 'format': writer.book.add_format({'border': 1, 'border_color': '#000000'})})
     # Edit Metadata
     writer.book.set_properties(
         {
