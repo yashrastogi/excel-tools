@@ -131,6 +131,13 @@ def customizeCols(df, colNames):
         inplace=True,
     )
     df.insert(len(df.columns), "Remarks", "")
+    
+    dateCols = ["Vuln Publication Date","Patch Publication Date","Plugin Publication Date","Plugin Modification Date","First Discovered","Last Observed"]
+    for col in dateCols:
+        if col in df.columns:
+            df[col] = df[col].str[:-4]
+            df[col] = pd.to_datetime(df[col], format="%b %d, %Y %H:%M:%S")
+
     df.rename(
         columns={
             "See Also": "Additional Details",
@@ -148,7 +155,7 @@ def writeExcel(df, destpath):
         options={"strings_to_urls": False},
     )
 
-    df.sort_values(["Severity", "Vulnerability Name"], ignore_index=True, inplace=True)
+    df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
     
@@ -174,6 +181,7 @@ def _worksheetFormat(worksheet, writer, df):
     if len(df.columns) > 12:
         # set column widths
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
+        worksheet.set_column(get_col("First Discovered"), get_col("Plugin Modification Date"), 18)
         worksheet.set_column(get_col("Synopsis"), get_col("Plugin Text"), 35, writer.book.add_format({"align": "fill"}))
         worksheet.set_column(get_col("S. No."), get_col("S. No."), 5)  # S No.
         worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 7)  # Plugin ID
@@ -219,7 +227,7 @@ def stripOutput(df: pd.DataFrame):
             .str.replace("Plugin Output: \n", " ")
             .str.replace("Plugin Output: ", " ")
         )
-        df["Plugin Text"] = [x[0:32760] for x in df["Plugin Text"]]
+        df["Plugin Text"] = df["Plugin Text"].str[0:32760]
     except:
         pass
 
@@ -351,6 +359,7 @@ def normalizeMisc(df: pd.DataFrame):
     high_with_sol: dict = {
         # "Microsoft Windows SMB Service Detection": "Disable SMB and use secure alternatives like SFTP",
         "Unencrypted Telnet Server": "Disable Telnet and use SSH",
+        "Daytime Service Detection": "Disable this service",
         "RPC portmapper Service Detection": "Disable RPC portmapper service",
         "FTP Server Detection": "Use secure alternative SFTP and disable this service",
         "TFTP Server Detection": "Use secure alternative SFTP and disable this service",
@@ -363,10 +372,11 @@ def normalizeMisc(df: pd.DataFrame):
         "Systat Service Remote Information Disclosure": "Disable this service",
         "RPC rstatd Service Detection": "Disable this service",
         "RPC sprayd Service In Use": "Disable this service",
-        "Sendmail Server Detected": "Disable this service",
+        # "Sendmail Service Detection": "Disable this service",
         "Echo Service Detection": "Disable this service",
         "RPC rusers Remote Information Disclosure": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
+        "Discard Service Detection": "Disable this service"
     }
     replace: str = (
         "This test is informational only and does not denote any security problem."
@@ -415,6 +425,9 @@ def normalizeMisc(df: pd.DataFrame):
             & ~df["Plugin Text"].str.contains("Location: https://", na=False)
             & ~df["Plugin Text"].str.contains(
                 "You're speaking plain HTTP to an SSL-enabled server port.", na=False
+            )
+            & ~df["Plugin Text"].str.contains(
+                "Client sent an HTTP request to an HTTPS server.", na=False
             )
         )
         temp = df.loc[conditions, "Description"]

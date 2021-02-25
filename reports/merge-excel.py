@@ -11,7 +11,7 @@ def writeExcel(df, destpath):
     )
     print('\nSorting values.')
     df = df.astype({'Severity': pd.CategoricalDtype(categories=["Critical", "High", "Medium", "Low", "Info"], ordered=True)})
-    df.sort_values(["Severity", "Vulnerability Name"], ignore_index=True, inplace=True)
+    df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df["S. No."] = df.index + 1
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     # table formatting
@@ -74,6 +74,7 @@ parser = argparse.ArgumentParser(
         description="Merge excel files."
     )
 parser.add_argument("path", type=dir_path, help="specify path containing excel report(s)")
+parser.add_argument("name", type=str, help="specify output file name", default="combined-vulns")
 parser.add_argument(
     "-i", "--info", help="keep only info findings", action="store_true", default=False
 )
@@ -82,6 +83,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "-r", "--rem-info", help="remove info findings", action="store_true", default=False
+)
+parser.add_argument(
+    "-p", "--ping", help="filter only ping findings", action="store_true", default=False
 )
 
 colNames = [
@@ -121,6 +125,8 @@ for root, _, files in os.walk(path):
                 	df = df[df["Severity"] != "Info"]
                 if args.quarter:
                     df.drop(df.columns.difference(colNames), 1, inplace=True)
+                if args.ping:
+                    df = df[df["Vulnerability Name"] == "Ping the remote host"]
             else: 
                 df1 = pd.read_excel(f"{root}/{file}")
                 if args.quarter:
@@ -129,9 +135,11 @@ for root, _, files in os.walk(path):
                 	df1 = df1[df1["Severity"] != "Info"]
                 if args.info:
                     df1 = df1[df1["Severity"] == "Info"]
+                if args.ping:
+                    df1 = df1[df1["Vulnerability Name"] == "Ping the remote host"]
                 df = pd.concat([df, df1])
 
-writeExcel(df, os.path.join(path, "combined-vulns"))
+writeExcel(df, os.path.join(path, args.name))
 # df.to_csv("combined-vulns.csv", index=False)
 # df.to_parquet('combined.parquet.gz', compression='gzip')
 

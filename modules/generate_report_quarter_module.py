@@ -127,8 +127,16 @@ def generate_report(path, skip=True, checkAuthOpt=False, internetFacing=False, r
                         )
 
 def fillNA(df):
-    df.loc[:,'Additional Details':'Exploit Frameworks'] = df.loc[:,'Additional Details':'Exploit Frameworks'].replace(np.nan, 'Not Available')
-    df['Exploit Ease'].fillna('Not Available', inplace=True)
+    # cols = ["Solution", "Plugin Text", "Additional Details", "CVE", "Exploit Ease", "Exploit Frameworks"]
+    df.loc[:,'Solution':'Exploit Frameworks'] = df.loc[:,'Solution':'Exploit Frameworks'].fillna('Not Available')
+    # for col in cols:
+        # import pdb; pdb.set_trace()
+        # df[col] = df[col].fillna('Not Available')
+        # df.loc[:,'Solution':'Exploit Frameworks'].values[df.loc[:,'Solution':'Exploit Frameworks'].isna()] = 'Not Available'
+        # df[col].values[df[col].isna()] = 'Not Available'
+        # df[col] = df[col].replace(np.nan, 'Not Available')
+    # df.loc[:,'Solution':'Exploit Frameworks'] = df.loc[:,'Solution':'Exploit Frameworks'].replace(np.nan, 'Not Available')
+    # df['Exploit Ease'].fillna('Not Available', inplace=True)
     
 def customizeCols(df, colNames):
     # df.drop(
@@ -138,6 +146,13 @@ def customizeCols(df, colNames):
     # )
     # df.insert(12, "Remarks", "")
     df.insert(0, "S. No.", 0)
+
+    dateCols = ["Vuln Publication Date","Patch Publication Date","Plugin Publication Date","Plugin Modification Date","First Discovered","Last Observed"]
+    for col in dateCols:
+        if col in df.columns:
+            df[col] = df[col].str[:-4]
+            df[col] = pd.to_datetime(df[col], format="%b %d, %Y %H:%M:%S")
+            
     df.rename(
         columns={
             "See Also": "Additional Details",
@@ -154,7 +169,7 @@ def writeExcel(df, destpath):
         engine="xlsxwriter",
         options={"strings_to_urls": False},
     )
-    df.sort_values(["Severity", "Vulnerability Name"], ignore_index=True, inplace=True)
+    df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df["S. No."] = df.index + 1
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     # try:
@@ -180,6 +195,7 @@ def _worksheetFormat(worksheet, writer, df):
         # set column widths
         # worksheet.set_column(8, 10, 35)  # Columns 8 -> 11
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
+        worksheet.set_column(get_col("First Discovered"), get_col("Plugin Modification Date"), 18)
         worksheet.set_column(get_col("Synopsis"), get_col("Plugin Text"), 35, writer.book.add_format({"align": "fill"}))
         worksheet.set_column(get_col("Additional Details"), get_col("Additional Details"), 20)
         worksheet.set_column(get_col("S. No."), get_col("S. No."), 7)  # S No.
@@ -225,7 +241,7 @@ def stripOutput(df: pd.DataFrame):
             .str.replace("Plugin Output: \n", " ")
             .str.replace("Plugin Output: ", " ")
         )
-        df["Plugin Text"] = [x[0:32760] for x in df["Plugin Text"]]
+        df["Plugin Text"] = df["Plugin Text"].str[0:32760]
     except:
         pass
 
@@ -401,6 +417,12 @@ def normalizeMisc(df: pd.DataFrame):
             "",
             "It is recommended to use FTPS (FTP over SSL/TLS) or SFTP (part of the SSH suite)",
         ),
+        "Discard Service Detection": ModRowItem(
+            "",
+            "A discard service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+            "",
+            "",
+        ),
         # "TFTP Server Detection": ModRowItem(
         #     "", "", "", "Use secure alternative SFTP and It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines"
         # ),
@@ -451,12 +473,12 @@ def normalizeMisc(df: pd.DataFrame):
             "",
             "",
         ),
-        "Sendmail Server Detected": ModRowItem(
-            "",
-            "",
-            "",
-            "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
-        ),
+        # "Sendmail Service Detection": ModRowItem(
+        #     "",
+        #     "A sendmail service is running on the remote host.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
+        #     "",
+        #     "It is recommended to disable this service, if not used on this machine. Otherwise filter traffic to this port to allow access only from trusted machines",
+        # ),
         "RPC rusers Remote Information Disclosure": ModRowItem(
             "",
             "It is possible to enumerate logged in users.\nAccording to MBSS point no. 35, only secure services must be enabled and secure protocol must be used.",
@@ -530,6 +552,9 @@ def normalizeMisc(df: pd.DataFrame):
             & ~df["Plugin Text"].str.contains("Location: https://", na=False)
             & ~df["Plugin Text"].str.contains(
                 "You're speaking plain HTTP to an SSL-enabled server port.", na=False
+            )
+            & ~df["Plugin Text"].str.contains(
+                "Client sent an HTTP request to an HTTPS server.", na=False
             )
         )
         temp = df.loc[conditions, "Description"]
