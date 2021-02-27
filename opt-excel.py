@@ -28,12 +28,15 @@ def add_dir_zip(dira, zipf, basedir):
 
 
 for file in os.listdir(path):
-    fullpath = os.path.join(path, file)
+    fullpath = os.path.join(path, file) # full path to file
     if os.path.isfile(fullpath) and not os.path.splitext(file)[0].endswith('-opt'):
-        fullpath2 = os.path.join(path, os.path.splitext(file)[0])
+        fullpath2 = os.path.join(path, os.path.splitext(file)[0]) # full path + file name without extension
         if zipfile.is_zipfile(fullpath):
             print(file)
-            destoptfilename = fullpath2 + '-opt' + os.path.splitext(file)[1]
+            # destoptfilename = fullpath2 + '-opt' + os.path.splitext(file)[1] # fullpath2 + -opt + extension
+            destoptfilename = os.path.join(path, "opt", os.path.splitext(file)[0] + '-opt' + os.path.splitext(file)[1])
+            if not os.path.isdir(os.path.join(path, "opt")):
+                os.makedirs(os.path.join(path, "opt"))
             if os.path.exists(destoptfilename):
                 print(os.path.basename(destoptfilename) + ' exists! Not proceeding with this file.')
             else:
@@ -41,7 +44,7 @@ for file in os.listdir(path):
 	                if not os.path.exists(fullpath2):
 	                    os.makedirs(fullpath2)
 	                zipf.extractall(path=fullpath2)
-	            destoptfilename = fullpath2 + '-opt' + os.path.splitext(file)[1]
+	            # destoptfilename = fullpath2 + '-opt' + os.path.splitext(file)[1]
 	            with zipfile.ZipFile(destoptfilename, mode='x', compresslevel=9, compression=zipfile.ZIP_DEFLATED, allowZip64=False) as newzipf:
 	                add_dir_zip(fullpath2, newzipf, fullpath2)
 	            shutil.rmtree(fullpath2)

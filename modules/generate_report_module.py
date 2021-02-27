@@ -7,12 +7,13 @@ import sys
 
 def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
     np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
+    severities = ["Critical", "High", "Medium", "Low", "Info"]
     columns_dtypes = {
         "Plugin": pd.Int64Dtype(),
         "Plugin Name": pd.CategoricalDtype(ordered=False),
         "Family": pd.CategoricalDtype(ordered=False),
         "Severity": pd.CategoricalDtype(
-            categories=["Critical", "High", "Medium", "Low", "Info"], ordered=True
+            categories=severities + [sev.upper() for sev in severities], ordered=True
         ),
         "IP Address": "object",
         "Protocol": pd.CategoricalDtype(ordered=False),
@@ -158,7 +159,8 @@ def writeExcel(df, destpath):
     df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
-    
+    df['Severity'] = df['Severity'].str.upper()
+
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     try:
         generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
@@ -177,24 +179,39 @@ def _worksheetFormat(worksheet, writer, df):
             if col == colName:
                 break
         return count
+
+    # conditional formatting
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Critical"', 'format': writer.book.add_format({'bg_color': '#E24301', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"High"', 'format': writer.book.add_format({'bg_color': '#FF671B', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Medium"', 'format': writer.book.add_format({'bg_color': '#f9b801', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Low"', 'format': writer.book.add_format({'bg_color': '#3FAE49', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Info"', 'format': writer.book.add_format({'bg_color': '#0171B9', 'font_color': '#ffffff'})})
+    worksheet.conditional_format(0, 0, len(df), len(df.columns)-1, {'type': 'formula', 'criteria': 'True', 'format': writer.book.add_format({'border': 1, 'border_color': '#000000'})})
+
+    # other formatting
     worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
     if len(df.columns) > 12:
         # set column widths
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
-        worksheet.set_column(get_col("First Discovered"), get_col("Plugin Modification Date"), 18)
-        worksheet.set_column(get_col("Synopsis"), get_col("Plugin Text"), 35, writer.book.add_format({"align": "fill"}))
-        worksheet.set_column(get_col("S. No."), get_col("S. No."), 5)  # S No.
+        worksheet.set_column(get_col("First Discovered"), get_col("Plugin Modification Date"), 21)
+        worksheet.set_column(get_col("Synopsis"), get_col("Description"), 35, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(get_col("Solution"), get_col("Plugin Text"), 35)
+        worksheet.set_column(get_col("S. No."), get_col("S. No."), max(len(str(df['S. No.'].iloc[-1]))+1, 5))  # S No.
         worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 7)  # Plugin ID
         worksheet.set_column(get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41)  # Vuln. Name
-        worksheet.set_column(get_col("IP Address"), get_col("IP Address"), 12)  # IP Addr.
-        worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 4)  # Protocol
+        worksheet.set_column(get_col("IP Address"), get_col("IP Address"), 14)  # IP Addr.
+        worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 7)  # Protocol
         worksheet.set_column(get_col("Port"), get_col("Port"), 6)  # Port
-        worksheet.set_column(get_col("Severity"), get_col("Severity"), 10, writer.book.add_format({"align": "center"}))  # Severity
+        worksheet.set_column(get_col('CVE'), get_col('CVE'), 13)
+        worksheet.set_column(get_col("Severity"), get_col("Severity"), 10, writer.book.add_format({"align": "center", "bold": True}))  # Severity
         worksheet.set_column(get_col("Additional Details"), get_col("Additional Details"), 20, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(get_col("Exploit Ease"), get_col("Remarks"), 30.5)
 
     # create list of dicts for header names
     #  (columns property accepts {'header': value} as header name)
-    col_names = [{"header": col_name} for col_name in df.columns]
+    col_names = [{"header": col_name, \
+    "header_format": writer.book.add_format({'bg_color': '#235591', 'align': 'center'})\
+        } for col_name in df.columns]
 
     # add table with coordinates: first row, first col, last row, last col;
     #  header names or formating can be inserted into dict
@@ -203,14 +220,9 @@ def _worksheetFormat(worksheet, writer, df):
         0,
         df.shape[0],
         df.shape[1] - 1,
-        {"columns": col_names, "style": "Table Style Light 8"}
+        {"autofilter": False, "columns": col_names, "style": "Table Style Light 8"}
     )
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Critical"', 'format': writer.book.add_format({'bg_color': '#ff0000', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"High"', 'format': writer.book.add_format({'bg_color': '#ffc000'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Medium"', 'format': writer.book.add_format({'bg_color': '#ffff00'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Low"', 'format': writer.book.add_format({'bg_color': '#92d050'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Info"', 'format': writer.book.add_format({'bg_color': '#0070c0', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, 0, len(df), len(df.columns)-1, {'type': 'formula', 'criteria': 'True', 'format': writer.book.add_format({'border': 1, 'border_color': '#000000'})})
+
     # Edit Metadata
     writer.book.set_properties(
         {
