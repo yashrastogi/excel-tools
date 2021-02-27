@@ -6,7 +6,7 @@ import sys
 
 
 def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
-    np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
+    # np.warnings.filterwarnings("error", category=np.VisibleDeprecationWarning)
     severities = ["Critical", "High", "Medium", "Low", "Info"]
     columns_dtypes = {
         "Plugin": pd.Int64Dtype(),
@@ -99,21 +99,21 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False):
 
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
-                        
+
                         checkPing(df)
-                        
+
                         checkAuth(df, destpath, checkAuthOpt)
-                        
+
                         customizeCols(df, colNames)
-                        
+
                         normalizeSSL(df, internetFacing)
-                        
+
                         normalizeMisc(df)
-                        
+
                         stripOutput(df)
-                        
+
                         writeExcel(df, destpath)
-                        
+
                         timeEnd: datetime = datetime.now()
                         msec = (timeEnd - timeStart).total_seconds() * 1000
                         print("Excel file written in {:.0f}ms...\n".format(msec))
@@ -132,8 +132,15 @@ def customizeCols(df, colNames):
         inplace=True,
     )
     df.insert(len(df.columns), "Remarks", "")
-    
-    dateCols = ["Vuln Publication Date","Patch Publication Date","Plugin Publication Date","Plugin Modification Date","First Discovered","Last Observed"]
+
+    dateCols = [
+        "Vuln Publication Date",
+        "Patch Publication Date",
+        "Plugin Publication Date",
+        "Plugin Modification Date",
+        "First Discovered",
+        "Last Observed",
+    ]
     for col in dateCols:
         if col in df.columns:
             df[col] = df[col].str[:-4]
@@ -156,10 +163,12 @@ def writeExcel(df, destpath):
         options={"strings_to_urls": False},
     )
 
-    df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
+    df.sort_values(
+        ["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True
+    )
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
-    df['Severity'] = df['Severity'].str.upper()
+    df["Severity"] = df["Severity"].str.upper()
 
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     try:
@@ -181,12 +190,77 @@ def _worksheetFormat(worksheet, writer, df):
         return count
 
     # conditional formatting
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Critical"', 'format': writer.book.add_format({'bg_color': '#E24301', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"High"', 'format': writer.book.add_format({'bg_color': '#FF671B', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Medium"', 'format': writer.book.add_format({'bg_color': '#f9b801', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Low"', 'format': writer.book.add_format({'bg_color': '#3FAE49', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, get_col('Severity'), len(df), get_col('Severity'), {'type': 'cell', 'criteria': '=', 'value': '"Info"', 'format': writer.book.add_format({'bg_color': '#0171B9', 'font_color': '#ffffff'})})
-    worksheet.conditional_format(0, 0, len(df), len(df.columns)-1, {'type': 'formula', 'criteria': 'True', 'format': writer.book.add_format({'border': 1, 'border_color': '#000000'})})
+    worksheet.conditional_format(
+        0,
+        get_col("Severity"),
+        len(df),
+        get_col("Severity"),
+        {
+            "type": "cell",
+            "criteria": "=",
+            "value": '"Critical"',
+            "format": writer.book.add_format({"bg_color": "#E24301", "font_color": "#ffffff"}),
+        },
+    )
+    worksheet.conditional_format(
+        0,
+        get_col("Severity"),
+        len(df),
+        get_col("Severity"),
+        {
+            "type": "cell",
+            "criteria": "=",
+            "value": '"High"',
+            "format": writer.book.add_format({"bg_color": "#FF671B", "font_color": "#ffffff"}),
+        },
+    )
+    worksheet.conditional_format(
+        0,
+        get_col("Severity"),
+        len(df),
+        get_col("Severity"),
+        {
+            "type": "cell",
+            "criteria": "=",
+            "value": '"Medium"',
+            "format": writer.book.add_format({"bg_color": "#f9b801", "font_color": "#ffffff"}),
+        },
+    )
+    worksheet.conditional_format(
+        0,
+        get_col("Severity"),
+        len(df),
+        get_col("Severity"),
+        {
+            "type": "cell",
+            "criteria": "=",
+            "value": '"Low"',
+            "format": writer.book.add_format({"bg_color": "#3FAE49", "font_color": "#ffffff"}),
+        },
+    )
+    worksheet.conditional_format(
+        0,
+        get_col("Severity"),
+        len(df),
+        get_col("Severity"),
+        {
+            "type": "cell",
+            "criteria": "=",
+            "value": '"Info"',
+            "format": writer.book.add_format({"bg_color": "#0171B9", "font_color": "#ffffff"}),
+        },
+    )
+    worksheet.conditional_format(
+        0,
+        0,
+        len(df),
+        len(df.columns) - 1,
+        {
+            "type": "formula",
+            "criteria": "True",
+            "format": writer.book.add_format({"border": 1, "border_color": "#000000"}),
+        },
+    )
 
     # other formatting
     worksheet.set_row(0, None, writer.book.add_format({"align": "left"}))
@@ -194,24 +268,47 @@ def _worksheetFormat(worksheet, writer, df):
         # set column widths
         worksheet.set_column(11, len(df.columns), 15)  # Columns 12 -> End
         worksheet.set_column(get_col("First Discovered"), get_col("Plugin Modification Date"), 21)
-        worksheet.set_column(get_col("Synopsis"), get_col("Description"), 35, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(
+            get_col("Synopsis"),
+            get_col("Description"),
+            35,
+            writer.book.add_format({"align": "fill"}),
+        )
         worksheet.set_column(get_col("Solution"), get_col("Plugin Text"), 35)
-        worksheet.set_column(get_col("S. No."), get_col("S. No."), max(len(str(df['S. No.'].iloc[-1]))+1, 5))  # S No.
+        worksheet.set_column(
+            get_col("S. No."), get_col("S. No."), max(len(str(df["S. No."].iloc[-1])) + 1, 5)
+        )  # S No.
         worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 7)  # Plugin ID
-        worksheet.set_column(get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41)  # Vuln. Name
+        worksheet.set_column(
+            get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41
+        )  # Vuln. Name
         worksheet.set_column(get_col("IP Address"), get_col("IP Address"), 14)  # IP Addr.
         worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 7)  # Protocol
         worksheet.set_column(get_col("Port"), get_col("Port"), 6)  # Port
-        worksheet.set_column(get_col('CVE'), get_col('CVE'), 13)
-        worksheet.set_column(get_col("Severity"), get_col("Severity"), 10, writer.book.add_format({"align": "center", "bold": True}))  # Severity
-        worksheet.set_column(get_col("Additional Details"), get_col("Additional Details"), 20, writer.book.add_format({"align": "fill"}))
+        worksheet.set_column(get_col("CVE"), get_col("CVE"), 13)
+        worksheet.set_column(
+            get_col("Severity"),
+            get_col("Severity"),
+            10,
+            writer.book.add_format({"align": "center", "bold": True}),
+        )  # Severity
+        worksheet.set_column(
+            get_col("Additional Details"),
+            get_col("Additional Details"),
+            20,
+            writer.book.add_format({"align": "fill"}),
+        )
         worksheet.set_column(get_col("Exploit Ease"), get_col("Remarks"), 30.5)
 
     # create list of dicts for header names
     #  (columns property accepts {'header': value} as header name)
-    col_names = [{"header": col_name, \
-    "header_format": writer.book.add_format({'bg_color': '#235591', 'align': 'center'})\
-        } for col_name in df.columns]
+    col_names = [
+        {
+            "header": col_name,
+            "header_format": writer.book.add_format({"bg_color": "#235591", "align": "center"}),
+        }
+        for col_name in df.columns
+    ]
 
     # add table with coordinates: first row, first col, last row, last col;
     #  header names or formating can be inserted into dict
@@ -220,7 +317,7 @@ def _worksheetFormat(worksheet, writer, df):
         0,
         df.shape[0],
         df.shape[1] - 1,
-        {"autofilter": False, "columns": col_names, "style": "Table Style Light 8"}
+        {"autofilter": False, "columns": col_names, "style": "Table Style Light 8"},
     )
 
     # Edit Metadata
@@ -395,11 +492,9 @@ def normalizeMisc(df: pd.DataFrame):
         "Echo Service Detection": "Disable this service",
         "RPC rusers Remote Information Disclosure": "Disable this service",
         "rsync Service Detection": "Disable this service and use secure alternatives like SFTP",
-        "Discard Service Detection": "Disable this service"
+        "Discard Service Detection": "Disable this service",
     }
-    replace: str = (
-        "This test is informational only and does not denote any security problem."
-    )
+    replace: str = "This test is informational only and does not denote any security problem."
 
     for key in high_with_sol:
         try:
@@ -430,16 +525,11 @@ def normalizeMisc(df: pd.DataFrame):
 
     try:
         conditions = (
-            (
-                df["Vulnerability Name"]
-                == "HyperText Transfer Protocol (HTTP) Information"
-            )
+            (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
             & ~df["Plugin Text"].str.contains(
                 "This combination of host and port requires TLS", na=False
             )
-            & ~df["Plugin Text"].str.contains(
-                "plain HTTP request was sent to HTTPS port", na=False
-            )
+            & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
             & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
             & ~df["Plugin Text"].str.contains("Location: https://", na=False)
             & ~df["Plugin Text"].str.contains(

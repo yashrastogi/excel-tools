@@ -23,7 +23,9 @@ def count_severity(path: str):
                 )
                 for key in countDict:
                     if key in [sev.title() for sev in sevCounts.index]:
-                        countDict[key] = sevCounts[key] if key in sevCounts.index else sevCounts[key.upper()]
+                        countDict[key] = (
+                            sevCounts[key] if key in sevCounts.index else sevCounts[key.upper()]
+                        )
                 fileInfoDF = fileInfoDF.append(countDict, ignore_index=True)
 
     fileInfoDF.sort_values(["File Name"], inplace=True, ignore_index=True)

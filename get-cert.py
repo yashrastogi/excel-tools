@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+
 def getContent(cnum, type):
     headers = {
         "Connection": "keep-alive",
@@ -17,12 +18,12 @@ def getContent(cnum, type):
         "Accept-Language": "en-GB,en;q=0.9",
     }
     params = ()
-    if type == 'VulnerabilityNote':
+    if type == "VulnerabilityNote":
         params = (
             ("pageid", "PUBVLNOTES01"),
             ("VLCODE", cnum),
         )
-    elif type == 'Advisory':
+    elif type == "Advisory":
         params = (
             ("pageid", "PUBVLNOTES02"),
             ("VLCODE", cnum),
@@ -34,23 +35,23 @@ def getContent(cnum, type):
 
 
 def main():
-    df_cve = pandas.DataFrame(columns=['CVIN', 'CVE'])
-    df_civn = pandas.read_excel(r'C:\Users\A1YTVI9H\Downloads\a.xlsx', sheet_name=1)
+    df_cve = pandas.DataFrame(columns=["CVIN", "CVE"])
+    df_civn = pandas.read_excel(r"C:\Users\A1YTVI9H\Downloads\a.xlsx", sheet_name=1)
     for cnum in df_civn["CIVN No"].tolist():
-        if cnum.startswith('CIVN'):
-            content = getContent(cnum, 'VulnerabilityNote')
-            soup = BeautifulSoup(content, 'html.parser')
-            CVEList = soup.body.findAll(text=re.compile('^CVE-[0-9]+-[0-9]+'))
-            CVEStr = '\n'.join(CVEList)
-            df_cve = df_cve.append({'CVIN': cnum, 'CVE': CVEStr}, ignore_index=True)
-        elif cnum.startswith('CIAD'):
-            content = getContent(cnum, 'Advisory')
-            soup = BeautifulSoup(content, 'html.parser')
-            CVEList = soup.body.findAll(text=re.compile('^CVE-[0-9]+-[0-9]+'))
-            CVEStr = '\n'.join(CVEList)
+        if cnum.startswith("CIVN"):
+            content = getContent(cnum, "VulnerabilityNote")
+            soup = BeautifulSoup(content, "html.parser")
+            CVEList = soup.body.findAll(text=re.compile("^CVE-[0-9]+-[0-9]+"))
+            CVEStr = "\n".join(CVEList)
+            df_cve = df_cve.append({"CVIN": cnum, "CVE": CVEStr}, ignore_index=True)
+        elif cnum.startswith("CIAD"):
+            content = getContent(cnum, "Advisory")
+            soup = BeautifulSoup(content, "html.parser")
+            CVEList = soup.body.findAll(text=re.compile("^CVE-[0-9]+-[0-9]+"))
+            CVEStr = "\n".join(CVEList)
             # import pdb; pdb.set_trace()
-            df_cve = df_cve.append({'CVIN': cnum, 'CVE': CVEStr}, ignore_index=True)
-    df_cve.to_excel('CVE.xlsx')
+            df_cve = df_cve.append({"CVIN": cnum, "CVE": CVEStr}, ignore_index=True)
+    df_cve.to_excel("CVE.xlsx")
     # import pdb; pdb.set_trace()
 
 
