@@ -12,25 +12,36 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, re
     global quarter
     quarter = qrtr
     severities = ["Critical", "High", "Medium", "Low", "Info"]
+
     columns_dtypes = {
-        "Plugin": pd.Int64Dtype(),
-        "Plugin Name": pd.CategoricalDtype(ordered=False),
-        "Family": pd.CategoricalDtype(ordered=False),
-        "Severity": pd.CategoricalDtype(categories=severities + [sev.upper() for sev in severities], ordered=True),
         "IP Address": "object",
+        "Plugin Name": pd.CategoricalDtype(ordered=False),
+        "Severity": pd.CategoricalDtype(categories=severities + [sev.upper() for sev in severities], ordered=True),
         "Protocol": pd.CategoricalDtype(ordered=False),
         "Port": pd.Int64Dtype(),
-        "Exploit?": pd.CategoricalDtype(ordered=False),
-        "Repository": pd.CategoricalDtype(ordered=False),
-        "MAC Address": "object",
-        "DNS Name": "object",
-        "NetBIOS Name": "object",
-        "Exploit Frameworks": "object",
         "Synopsis": "object",
         "Description": "object",
         "Solution": "object",
         "Plugin Text": "object",
         "See Also": "object",
+        "CVE": "object",
+        "Exploit Ease": pd.CategoricalDtype(
+            categories=[
+                "Exploits are available",
+                "No exploit is required",
+                "No known exploits are available",
+                "Not Applicable"
+            ],
+            ordered=False,
+        ),
+        "Exploit Frameworks": "object",
+        "Plugin": pd.Int64Dtype(),
+        "Family": pd.CategoricalDtype(ordered=False),
+        "Exploit?": pd.CategoricalDtype(ordered=False),
+        "Repository": pd.CategoricalDtype(ordered=False),
+        "MAC Address": "object",
+        "DNS Name": "object",
+        "NetBIOS Name": "object",
         "Risk Factor": pd.CategoricalDtype(ordered=False),
         "STIG Severity": pd.CategoricalDtype(ordered=False),
         "Vulnerability Priority Rating": "float64",
@@ -41,7 +52,6 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, re
         "CVSS V2 Vector": "object",
         "CVSS V3 Vector": "object",
         "CPE": "object",
-        "CVE": "object",
         "BID": "object",
         "Cross References": "object",
         "First Discovered": "object",
@@ -50,14 +60,6 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, re
         "Patch Publication Date": "object",
         "Plugin Publication Date": "object",
         "Plugin Modification Date": "object",
-        "Exploit Ease": pd.CategoricalDtype(
-            categories=[
-                "Exploits are available",
-                "No exploit is required",
-                "No known exploits are available",
-            ],
-            ordered=False,
-        ),
         "Check Type": pd.CategoricalDtype(ordered=False),
         "Version": "object",
     }
