@@ -29,13 +29,13 @@ def getContent(cnum, type):
         )
 
     return requests.get(
-        "https://www.cert-in.org.in/s2cMainServlet", headers=headers, params=params
+        "https://www.cert-in.org.in/s2cMainServlet", verify=False, headers=headers, params=params
     ).content
 
 
 def main():
     df_cve = pandas.DataFrame(columns=['CVIN', 'CVE'])
-    df_civn = pandas.read_excel(r'C:\Users\A1YTVI9H\Downloads\a.xlsx', sheet_name=1)
+    df_civn = pandas.read_excel(r'C:\Users\EL775CX\Downloads\a.xlsx', sheet_name=1)
     print(df_civn, end='\n\n')
     for cnum in df_civn["CIVN No"].tolist():
         print(cnum)

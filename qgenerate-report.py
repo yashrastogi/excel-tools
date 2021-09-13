@@ -22,8 +22,9 @@ def main():
         action="store_true",
         default=False,
     )
+    parser.add_argument("-o", "--oldnessus", help="Set older nessus columns", action="store_true")
     args = parser.parse_args()
-    generate_report(args.path, not args.erase, False, args.internet, args.removeinfo, True)
+    generate_report(args.path, not args.erase, False, args.internet, args.removeinfo, True, args.oldnessus)
 
 
 def dir_path(path):

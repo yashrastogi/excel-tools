@@ -10,7 +10,8 @@ def writeExcel(df, destpath):
         options={"strings_to_urls": False},
     )
     print('\nSorting values.')
-    df = df.astype({'Severity': pd.CategoricalDtype(categories=["Critical", "High", "Medium", "Low", "Info"], ordered=True)})
+    severities = ["Critical", "High", "Medium", "Low", "Info"]
+    df = df.astype({'Severity': pd.CategoricalDtype(categories=severities + [sev.upper() for sev in severities], ordered=True)})
     df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df["S. No."] = df.index + 1
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
@@ -120,9 +121,9 @@ for root, _, files in os.walk(path):
             if df.empty:
                 df = pd.read_excel(f"{root}/{file}")
                 if args.info:
-                    df = df[df["Severity"] == "Info"]
+                    df = df[(df["Severity"] == "Info") | (df["Severity"] == "INFO")]
                 if args.rem_info:
-                	df = df[df["Severity"] != "Info"]
+                	df = df[(df["Severity"] != "Info") | (df["Severity"] != "INFO")]
                 if args.quarter:
                     df.drop(df.columns.difference(colNames), 1, inplace=True)
                 if args.ping:
@@ -132,9 +133,9 @@ for root, _, files in os.walk(path):
                 if args.quarter:
                     df1.drop(df1.columns.difference(colNames), 1, inplace=True)
                 if args.rem_info:
-                	df1 = df1[df1["Severity"] != "Info"]
+                	df1 = df1[(df1["Severity"] != "Info") | (df1["Severity"] != "INFO")]
                 if args.info:
-                    df1 = df1[df1["Severity"] == "Info"]
+                    df1 = df1[(df1["Severity"] == "Info") | (df1["Severity"] == "INFO")]
                 if args.ping:
                     df1 = df1[df1["Vulnerability Name"] == "Ping the remote host"]
                 df = pd.concat([df, df1])
