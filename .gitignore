@@ -1,5 +1,9 @@
 .vscode/
 env/
+nessus-update.csv
+scan-schedule.csv
+all-2.0.tar.gz
+servers.csv
 build/
 .DS_Store
 act
