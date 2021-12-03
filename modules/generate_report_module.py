@@ -398,7 +398,7 @@ def _worksheetFormat(worksheet, writer, df):
         0,
         df.shape[0],
         df.shape[1] - 1,
-        {"autofilter": False, "columns": col_names, "style": "Table Style Light 8"},
+        {"autofilter": True, "columns": col_names, "style": "Table Style Light 8"},
     )
     worksheet.hide_gridlines(option=2)
     # Edit Metadata

@@ -1,0 +1,2 @@
+ServerName,IPAddress,Port,Username,Password
+Scanner 1,1.1.1.1,22,admin,admin
