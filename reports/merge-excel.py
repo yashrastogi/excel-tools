@@ -3,21 +3,22 @@ import sys
 import argparse
 import os
 
+
 def writeExcel(df, destpath):
     writer = pd.ExcelWriter(
         f"{destpath}.xlsx",
         engine="xlsxwriter",
         options={"strings_to_urls": False},
     )
-    print('\nSorting values.')
+    print("\nSorting values.")
     severities = ["Critical", "High", "Medium", "Low", "Info"]
-    df = df.astype({'Severity': pd.CategoricalDtype(categories=severities + [sev.upper() for sev in severities], ordered=True)})
+    df = df.astype({"Severity": pd.CategoricalDtype(categories=severities + [sev.upper() for sev in severities], ordered=True)})
     df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df["S. No."] = df.index + 1
     df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
     # table formatting
     _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
-    print('Writing excel.')
+    print("Writing excel.")
     writer.save()
 
 
@@ -57,7 +58,7 @@ def _worksheetFormat(worksheet, writer, df):
         df.shape[1] - 1,
         {"columns": col_names, "style": "Table Style Light 10"},
     )
-   
+
     # Edit Metadata
     writer.book.set_properties(
         {
@@ -65,29 +66,21 @@ def _worksheetFormat(worksheet, writer, df):
         }
     )
 
+
 def dir_path(path):
     if os.path.isdir(path):
         return path
     else:
         raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
 
-parser = argparse.ArgumentParser(
-        description="Merge excel files."
-    )
+
+parser = argparse.ArgumentParser(description="Merge excel files.")
 parser.add_argument("path", type=dir_path, help="specify path containing excel report(s)")
 parser.add_argument("name", type=str, help="specify output file name", default="combined-vulns")
-parser.add_argument(
-    "-i", "--info", help="keep only info findings", action="store_true", default=False
-)
-parser.add_argument(
-    "-q", "--quarter", help="only keep columns required for quarter", action="store_true", default=False
-)
-parser.add_argument(
-    "-r", "--rem-info", help="remove info findings", action="store_true", default=False
-)
-parser.add_argument(
-    "-p", "--ping", help="filter only ping findings", action="store_true", default=False
-)
+parser.add_argument("-i", "--info", help="keep only info findings", action="store_true", default=False)
+parser.add_argument("-q", "--quarter", help="only keep columns required for quarter", action="store_true", default=False)
+parser.add_argument("-r", "--rem-info", help="remove info findings", action="store_true", default=False)
+parser.add_argument("-p", "--ping", help="filter only ping findings", action="store_true", default=False)
 
 colNames = [
     "S. No.",
@@ -103,7 +96,7 @@ colNames = [
     "Additional Details",
     "CVE",
     "Exploit Ease",
-    "Exploit Frameworks"
+    "Exploit Frameworks",
 ]
 
 df = pd.DataFrame()
@@ -113,29 +106,26 @@ path = args.path
 for root, _, files in os.walk(path):
     for file in files:
         if str(file).endswith(".xlsx") and "~$" not in str(file) and str(file) != "combined-vulns.xlsx":
-            print(
-                "                                                                           ",
-                end="\r",
-            )
+            print(" " * 75, end="\r")
             print(f"{file}", end="\r")
             if df.empty:
                 df = pd.read_excel(f"{root}/{file}")
                 if args.info:
-                    df = df[(df["Severity"] == "Info") | (df["Severity"] == "INFO")]
+                    df = df[(df["Severity"] == "Info") & (df["Severity"] == "INFO")]
                 if args.rem_info:
-                	df = df[(df["Severity"] != "Info") | (df["Severity"] != "INFO")]
+                    df = df[(df["Severity"] != "Info") & (df["Severity"] != "INFO")]
                 if args.quarter:
                     df.drop(df.columns.difference(colNames), 1, inplace=True)
                 if args.ping:
                     df = df[df["Vulnerability Name"] == "Ping the remote host"]
-            else: 
+            else:
                 df1 = pd.read_excel(f"{root}/{file}")
                 if args.quarter:
                     df1.drop(df1.columns.difference(colNames), 1, inplace=True)
                 if args.rem_info:
-                	df1 = df1[(df1["Severity"] != "Info") | (df1["Severity"] != "INFO")]
+                    df1 = df1[(df1["Severity"] != "Info") & (df1["Severity"] != "INFO")]
                 if args.info:
-                    df1 = df1[(df1["Severity"] == "Info") | (df1["Severity"] == "INFO")]
+                    df1 = df1[(df1["Severity"] == "Info") & (df1["Severity"] == "INFO")]
                 if args.ping:
                     df1 = df1[df1["Vulnerability Name"] == "Ping the remote host"]
                 df = pd.concat([df, df1])
@@ -143,4 +133,3 @@ for root, _, files in os.walk(path):
 writeExcel(df, os.path.join(path, args.name))
 # df.to_csv("combined-vulns.csv", index=False)
 # df.to_parquet('combined.parquet.gz', compression='gzip')
-

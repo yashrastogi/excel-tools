@@ -1,40 +1,52 @@
 from datetime import datetime
 import json
 import re
-from time import time
+import time
 import urllib
+import os
+import urllib3
 import requests
 from functools import lru_cache
 import pandas as pd
 
+os.environ["no_proxy"] = "127.0.0.1,localhost"
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+proxies = {}
 
 class Nessus:
-    def __init__(self, base_url, username, password):
+    def __init__(self, base_url, username, password, debug=True):
         payload = f"username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
-        response = requests.request("POST", f"{base_url}/session", headers=headers, data=payload, verify=False)
+        response = requests.request("POST", f"{base_url}/session", headers=headers, data=payload, verify=False, proxies=proxies)
         self.base_url = base_url
+        self.debug = debug
         self.login_token = response.json()["token"]
+        if self.debug:
+            print(f"{self.base_url}: {response.text}")
 
     def update_plugins(self, plugins_file="all-2.0.tar.gz"):
         url = f"{self.base_url}/server/upload-plugins"
         files = [("Filedata", (plugins_file, open(plugins_file, "rb"), "application/octet-stream"))]
         headers = {"X-Cookie": f"token={self.login_token}"}
-        response = requests.request("POST", url, headers=headers, data={}, files=files, verify=False)
-        print(f"{self.base_url}: {response.text}")
+        response = requests.request("POST", url, headers=headers, data={}, files=files, verify=False, proxies=proxies)
+        if self.debug:
+            print(f"{self.base_url}: {response.text}")
 
         upload_file_name = response.json()["fileuploaded"]
         url = f"{self.base_url}/server/update-plugins"
         payload = json.dumps({"filename": upload_file_name})
         headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-        response = requests.request("POST", url, headers=headers, data=payload, verify=False)
-        print(f"{self.base_url}: {response.text}")
+        response = requests.request("POST", url, headers=headers, data=payload, verify=False, proxies=proxies)
+        if self.debug:
+            print(f"{self.base_url}: {response.text}")
 
     def download_scan_csv(self):
         print()
         url = f"{self.base_url}/scans"
         headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-        response = requests.request("GET", url, headers=headers, data={}, verify=False)
+        response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
+        if self.debug:
+            print(f"{self.base_url}: {response.text}")
         folders = [(fldrjson["name"], fldrjson["id"]) for fldrjson in response.json()["folders"]]
         for i, folder in enumerate(folders):
             print(f"{i+1}. {folder[0]}")
@@ -78,17 +90,37 @@ class Nessus:
                         "extraFilters": {"host_ids": [], "plugin_ids": []},
                     }
                 )
-                headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-                response = requests.request("POST", url, headers=headers, data=payload, verify=False)
+                headers = {
+                    "X-Cookie": f"token={self.login_token}",
+                    "Content-Type": "application/json",
+                    "X-API-Token": self.get_x_api_token(),
+                }
+                response = requests.request("POST", url, headers=headers, data=payload, verify=False, proxies=proxies)
+                if self.debug:
+                    print(f"{self.base_url}: {response.text}")
+                counter = 0
+                while response.headers["Content-Type"] == "application/json" and "error" in response.json():
+                    if self.debug:
+                        # print("\r" + (" " * 90) + "\r", end="")
+                        print(f"\r{self.base_url}: {response.text} | {counter}", end="")
+                        counter += 1
+                    time.sleep(1)
+                    response = requests.request("POST", url, headers=headers, data=payload, verify=False, proxies=proxies)
+                print()
                 csv_token = response.json()["token"]
                 url = f"{self.base_url}/tokens/{csv_token}/download"
-                payload = {}
                 headers = {"X-Cookie": f"token={self.login_token}"}
-                response = requests.request("GET", url, headers=headers, data=payload, verify=False)
+                time.sleep(2)
+                response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
+                counter = 0
                 while response.headers["Content-Type"] == "application/json" and response.json()["status"] == "loading":
+                    if self.debug:
+                        # print("\r" + (" " * 90) + "\r", end="")
+                        print(f"\r{self.base_url}: {response.text} | {counter}", end="")
+                        counter += 1
                     time.sleep(1)
-                    response = requests.request("GET", url, headers=headers, data=payload, verify=False)
-                    print(response.text)
+                    response = requests.request("GET", url, headers=headers, data=payload, verify=False, proxies=proxies)
+                print()
                 pattern = re.compile(r'filename="(.*)"')
                 file_name = ""
                 for match in pattern.finditer(response.headers["Content-Disposition"]):
@@ -98,7 +130,9 @@ class Nessus:
     def schedule_scan(self, policy_name="1-NSG Scan", scan_name="Script Configured", schedule_file="scan-schedule.csv"):
         url = f"{self.base_url}/policies"
         headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-        response = requests.request("GET", url, headers=headers, data={}, verify=False)
+        response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
+        # if self.debug:
+        #     print(f"{self.base_url}: {response.text}")
 
         policies = response.json()["policies"]
         policy_id = 0
@@ -144,12 +178,13 @@ class Nessus:
                 "Content-Type": "application/json",
                 "X-API-Token": self.get_x_api_token(),
             }
-            response = requests.request("POST", url, headers=headers, data=payload, verify=False)
-            print(f"{self.base_url}: {response.text}")
+            response = requests.request("POST", url, headers=headers, data=payload, verify=False, proxies=proxies)
+            if self.debug:
+                print(f"{self.base_url}: {response.text}")
 
     @lru_cache(maxsize=1)
     def get_x_api_token(self):
         headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-        r = requests.request("GET", f"{self.base_url}/nessus6.js", headers=headers, verify=False)
+        r = requests.request("GET", f"{self.base_url}/nessus6.js", headers=headers, verify=False, proxies=proxies)
         m = re.search(r"([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})", r.text)
         return m.group(0)
