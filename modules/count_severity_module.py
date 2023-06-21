@@ -17,14 +17,16 @@ def count_severity(path: str):
                 countDict.update(
                     {
                         "File Name": file,
-                        "Total": sevCounts.sum() - sevCounts.loc[sevCounts.index == "Info"].sum() - sevCounts.loc[sevCounts.index == "INFO"].sum(),
+                        "Total": sevCounts.sum()
+                        - sevCounts.loc[sevCounts.index == "Info"].sum()
+                        - sevCounts.loc[sevCounts.index == "INFO"].sum(),
                         "IP Count": df["IP Address"].nunique(),
                     }
                 )
                 for key in countDict:
                     if key in [sev.title() for sev in sevCounts.index]:
                         countDict[key] = sevCounts[key] if key in sevCounts.index else sevCounts[key.upper()]
-                fileInfoDF = fileInfoDF.append(countDict, ignore_index=True)
+                fileInfoDF = pd.concat([fileInfoDF, pd.DataFrame(countDict, index=[0])])
 
     fileInfoDF.sort_values(["File Name"], inplace=True, ignore_index=True)
     print(

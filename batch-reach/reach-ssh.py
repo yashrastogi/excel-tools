@@ -42,8 +42,8 @@ def traceroute(client, TTL, IPp):
     return [reachStatus, traceOut]
 
 
-def getReachability(ssh_client, writer, IPp):
-    global ipcount
+def getReachability(ssh_client, IPp):
+    global ipcount, global_out
     if not args.ping ^ args.traceroute:
         pingStatus = ping(client, IPp)
         if not args.always_trace and pingStatus == "Reachable":
@@ -52,14 +52,14 @@ def getReachability(ssh_client, writer, IPp):
         else:
             print(", starting traceroute...")
             reachStatus, traceOut = traceroute(client, args.TTL, IPp)
-        writer.writerow([IPp, pingStatus, reachStatus, traceOut])
+        global_out.append([IPp, pingStatus, reachStatus, traceOut])
     elif args.traceroute:
         reachStatus, traceOut = traceroute(client, args.TTL, IPp)
-        writer.writerow([IPp, reachStatus, traceOut])
+        global_out.append([IPp, reachStatus, traceOut])
     else:
         pingStatus = ping(client, IPp)
         print()
-        writer.writerow([IPp, pingStatus])
+        global_out.append([IPp, pingStatus])
     ipcount += 1
 
 timerStop = False
@@ -83,6 +83,7 @@ Port = ""
 Username = ""
 Password = ""
 ipcount = 0
+global_out = []
 
 # =====================================================================================================
 
@@ -153,7 +154,19 @@ with SSHClient() as client:
 
     timeStart = time.perf_counter()
 
+    
     with open(targetPath, newline="") as targets:
+        threading.Thread(target=timeCounter).start()
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            result_futures = list(
+                map(
+                    lambda line: executor.submit(getReachability, client, line.strip()),
+                    targets.readlines(),
+                )
+            )
+            wait(result_futures, timeout=None, return_when='ALL_COMPLETED')
+
         with open(os.path.join(".", "reports", f"{os.path.splitext(targets.name)[0]}_{IP}.csv"),"w",newline="") as reachCSV:
             writer = csv.writer(reachCSV)
             if not args.ping ^ args.traceroute:
@@ -162,17 +175,8 @@ with SSHClient() as client:
                 writer.writerow(["IP Address", "Traceroute Status", "Traceroute Output"])
             else:
                 writer.writerow(["IP Address", "Ping Status"])
-
-            threading.Thread(target=timeCounter).start()
-
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                result_futures = list(
-                    map(
-                        lambda line: executor.submit(getReachability, client, writer, line.strip()),
-                        targets.readlines(),
-                    )
-                )
-                wait(result_futures, timeout=None, return_when='ALL_COMPLETED')
+            for row in global_out:
+                writer.writerow(row)
 
 timerStop = True
 timeEnd = time.perf_counter()

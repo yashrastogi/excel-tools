@@ -45,8 +45,8 @@ def traceroute(TTL, IPp):
     return [reachStatus, traceOut]
 
 
-def getReachability(writer, IPp):
-    global ipcount
+def getReachability(IPp):
+    global ipcount, result_output
     if not args.ping ^ args.traceroute:
         pingStatus = ping(IPp)
         if not args.always_trace and pingStatus == "Reachable":
@@ -55,14 +55,14 @@ def getReachability(writer, IPp):
         else:
             print(", starting traceroute...")
             reachStatus, traceOut = traceroute(args.TTL, IPp)
-        writer.writerow([IPp, pingStatus, reachStatus, traceOut])
+        result_output.append([IPp, pingStatus, reachStatus, traceOut])
     elif args.traceroute:
         reachStatus, traceOut = traceroute(args.TTL, IPp)
-        writer.writerow([IPp, reachStatus, traceOut])
+        result_output.append([IPp, reachStatus, traceOut])
     else:
         pingStatus = ping(IPp)
         print()
-        writer.writerow([IPp, pingStatus])
+        result_output.append([IPp, pingStatus])
     ipcount += 1
 
 
@@ -91,6 +91,7 @@ Port = ""
 Username = ""
 Password = ""
 ipcount = 0
+result_output = []
 
 # =====================================================================================================
 
@@ -119,26 +120,30 @@ if targetPath == "":
 
 timeStart = time.perf_counter()
 
+
+
+threading.Thread(target=timeCounter).start()
+
 with open(targetPath, newline="") as targets:
-    with open(os.path.join(".", "reports", f"{os.path.splitext(targets.name)[0]}_{IP}.csv"), "w", newline="", encoding="UTF-8") as reachCSV:
-        writer = csv.writer(reachCSV)
-        if not args.ping ^ args.traceroute:
-            writer.writerow(["IP Address", "Ping Status", "Traceroute Status", "Traceroute Output"])
-        elif args.traceroute:
-            writer.writerow(["IP Address", "Traceroute Status", "Traceroute Output"])
-        else:
-            writer.writerow(["IP Address", "Ping Status"])
-
-        threading.Thread(target=timeCounter).start()
-
-        with ThreadPoolExecutor(max_workers=100) as executor:
-            result_futures = list(
-                map(
-                    lambda line: executor.submit(getReachability, writer, line.strip()),
-                    targets.readlines(),
-                )
+    with ThreadPoolExecutor(max_workers=200) as executor:
+        result_futures = list(
+            map(
+                lambda line: executor.submit(getReachability, line.strip()),
+                targets.readlines(),
             )
-            wait(result_futures, timeout=None, return_when="ALL_COMPLETED")
+        )
+        wait(result_futures, timeout=None, return_when="ALL_COMPLETED")
+
+        with open(os.path.join(".", "reports", f"{os.path.splitext(targets.name)[0]}_{IP}.csv"), "w", newline="", encoding="UTF-8") as reachCSV:
+            writer = csv.writer(reachCSV)
+            if not args.ping ^ args.traceroute:
+                writer.writerow(["IP Address", "Ping Status", "Traceroute Status", "Traceroute Output"])
+            elif args.traceroute:
+                writer.writerow(["IP Address", "Traceroute Status", "Traceroute Output"])
+            else:
+                writer.writerow(["IP Address", "Ping Status"])
+            for result in result_output:
+                writer.writerow(result)
 
 timerStop = True
 timeEnd = time.perf_counter()

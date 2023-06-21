@@ -93,6 +93,7 @@ colNames = [
     "Description",
     "Solution",
     "Plugin Text",
+    "Plugin Output",
     "Additional Details",
     "CVE",
     "Exploit Ease",
@@ -115,13 +116,13 @@ for root, _, files in os.walk(path):
                 if args.rem_info:
                     df = df[(df["Severity"] != "Info") & (df["Severity"] != "INFO")]
                 if args.quarter:
-                    df.drop(df.columns.difference(colNames), 1, inplace=True)
+                    df.drop(columns=df.columns.difference(colNames), axis=1, inplace=True)
                 if args.ping:
                     df = df[df["Vulnerability Name"] == "Ping the remote host"]
             else:
                 df1 = pd.read_excel(f"{root}/{file}")
                 if args.quarter:
-                    df1.drop(df1.columns.difference(colNames), 1, inplace=True)
+                    df1.drop(columns=df1.columns.difference(colNames), axis=1, inplace=True)
                 if args.rem_info:
                     df1 = df1[(df1["Severity"] != "Info") & (df1["Severity"] != "INFO")]
                 if args.info:

@@ -8,7 +8,15 @@ from collections import namedtuple
 quarter = False
 manipulateDF = False
 
-def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, removeInfo=False, qrtr=False):
+
+def generate_report(
+    path,
+    skip=True,
+    checkAuthOpt=True,
+    internetFacing=False,
+    removeInfo=False,
+    qrtr=False,
+):
     global quarter
     quarter = qrtr
     severities = ["Critical", "High", "Medium", "Low", "Info"]
@@ -22,7 +30,7 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, re
         "Synopsis": "object",
         "Description": "object",
         "Solution": "object",
-        "Plugin Text": "object",
+        "Plugin Output": "object",
         "See Also": "object",
         "CVE": "object",
         "Exploit Ease": pd.CategoricalDtype(
@@ -30,7 +38,7 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, re
                 "Exploits are available",
                 "No exploit is required",
                 "No known exploits are available",
-                "Not Applicable"
+                "Not Applicable",
             ],
             ordered=False,
         ),
@@ -71,7 +79,7 @@ def generate_report(path, skip=True, checkAuthOpt=True, internetFacing=False, re
         "IP Address",
         "Protocol",
         "Port",
-        "Plugin Text",
+        "Plugin Output",
         "Synopsis",
         "Description",
         "Solution",
@@ -144,11 +152,11 @@ def fillNA(df, cola, colb):
     df.loc[:, cola:colb] = df.loc[:, cola:colb].fillna("Not Applicable")
 
 
-def customizeCols(df, colNames):
+def customizeCols(df: pd.DataFrame, colNames):
     if not quarter:
         df.drop(
-            df.columns.difference(colNames),
-            1,
+            columns=df.columns.difference(colNames),
+            axis=1,
             inplace=True,
         )
         df.insert(len(df.columns), "Remarks", "")
@@ -177,32 +185,36 @@ def customizeCols(df, colNames):
 
 
 def writeExcel(df, destpath):
-    writer = pd.ExcelWriter(
-        f"{destpath}.xlsx",
-        engine="xlsxwriter",
-        options={"strings_to_urls": False},
+    df.sort_values(
+        ["Severity", "Vulnerability Name", "IP Address"],
+        ignore_index=True,
+        inplace=True,
     )
-
-    df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
     df["Severity"] = df["Severity"].str.upper()
 
     if manipulateDF:
-    	import pdb; pdb.set_trace()
+        import pdb
 
-    df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
-    if not quarter:
-        try:
-            generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
-        except:
-            pass
-    # table formatting
-    if quarter:
-        _quarterWorksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
-    else:
-        _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
-    writer.save()
+        pdb.set_trace()
+
+    with pd.ExcelWriter(
+        f"{destpath}.xlsx",
+        engine="xlsxwriter",
+        engine_kwargs={"options": {"strings_to_urls": False}},
+    ) as writer:
+        df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
+        if not quarter:
+            try:
+                generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
+            except:
+                pass
+        # table formatting
+        if quarter:
+            _quarterWorksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
+        else:
+            _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
 
 
 def _quarterWorksheetFormat(worksheet, writer, df):
@@ -222,7 +234,7 @@ def _quarterWorksheetFormat(worksheet, writer, df):
         worksheet.set_column(get_col("First Discovered"), get_col("Plugin Modification Date"), 18)
         worksheet.set_column(
             get_col("Synopsis"),
-            get_col("Plugin Text"),
+            get_col("Plugin Output"),
             35,
             writer.book.add_format({"align": "fill"}),
         )
@@ -354,14 +366,24 @@ def _worksheetFormat(worksheet, writer, df):
         35,
         writer.book.add_format({"align": "fill", "indent": 1}),
     )
-    worksheet.set_column(get_col("Solution"), get_col("Plugin Text"), 35, writer.book.add_format({"indent": 1}))
+    worksheet.set_column(
+        get_col("Solution"),
+        get_col("Plugin Output"),
+        35,
+        writer.book.add_format({"indent": 1}),
+    )
     worksheet.set_column(
         get_col("S. No."),
         get_col("S. No."),
         max(len(str(df["S. No."].iloc[-1])) + 1, 5),
         writer.book.add_format({"align": "center"}),
     )  # S No.
-    worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 8, writer.book.add_format({"align": "center"}))  # Plugin ID
+    worksheet.set_column(
+        get_col("Plugin ID"),
+        get_col("Plugin ID"),
+        8,
+        writer.book.add_format({"align": "center"}),
+    )  # Plugin ID
     worksheet.set_column(get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41)  # Vuln. Name
     worksheet.set_column(
         get_col("IP Address"),
@@ -369,10 +391,20 @@ def _worksheetFormat(worksheet, writer, df):
         14,
         writer.book.add_format({"align": "center"}),
     )  # IP Addr.
-    worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 7, writer.book.add_format({"align": "center"}))  # Protocol
+    worksheet.set_column(
+        get_col("Protocol"),
+        get_col("Protocol"),
+        7,
+        writer.book.add_format({"align": "center"}),
+    )  # Protocol
     worksheet.set_column(get_col("Port"), get_col("Port"), 6, writer.book.add_format({"align": "center"}))  # Port
     worksheet.set_column(get_col("CVE"), get_col("CVE"), 15, writer.book.add_format({"indent": 1}))
-    worksheet.set_column(get_col("Severity"), get_col("Severity"), 10, writer.book.add_format({"align": "center"}))  # Severity
+    worksheet.set_column(
+        get_col("Severity"),
+        get_col("Severity"),
+        10,
+        writer.book.add_format({"align": "center"}),
+    )  # Severity
     worksheet.set_column(
         get_col("Additional Details"),
         get_col("Additional Details"),
@@ -419,8 +451,8 @@ def generatePortsDF(df: pd.DataFrame):
 def stripOutput(df: pd.DataFrame):
     # Total number of characters that a cell can contain, in excel: 32,767 characters
     try:
-        df["Plugin Text"] = df["Plugin Text"].str.replace("Plugin Output: \n", " ").str.replace("Plugin Output: ", " ")
-        df["Plugin Text"] = df["Plugin Text"].str[0:32760]
+        df["Plugin Output"] = df["Plugin Output"].str.replace("Plugin Output: \n", " ").str.replace("Plugin Output: ", " ")
+        df["Plugin Output"] = df["Plugin Output"].str[0:32760]
     except:
         pass
 
@@ -434,7 +466,7 @@ def checkPing(df: pd.DataFrame, destpath):
         pass
     pingSuccessText = "Plugin Output: The remote host is up"
     printed: bool = False
-    for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Text"]].itertuples():
+    for namedTuple in df.loc[df["Plugin Name"] == "Ping the remote host", ["IP Address", "Plugin Output"]].itertuples():
         if pingSuccessText not in namedTuple._2:
             if not printed:
                 print("\nThe following remote hosts were found unreachable:")
@@ -466,7 +498,7 @@ def checkAuth(df: pd.DataFrame, destpath, enable: bool):
         ]
         acknowledged: dict = {}
         for plugin in plugins:
-            for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Text"].itertuples():
+            for namedTuple in df.loc[df["Plugin Name"] == plugin, "IP Address":"Plugin Output"].itertuples():
                 acknowledged.update({namedTuple._1: True})
                 txtFile = open(destpath, "a")
                 txtFile.write(f"({plugin}) IP Address: {namedTuple._1}:{namedTuple.Port}\n{namedTuple[-1]}\n\n")
@@ -481,7 +513,7 @@ def checkAuth(df: pd.DataFrame, destpath, enable: bool):
                         (df["Plugin Name"] == "Authentication Success")
                         | (df["Plugin Name"] == "Target Credential Issues by Authentication Protocol - No Issues Found")
                     ),
-                    "IP Address":"Plugin Text",
+                    "IP Address":"Plugin Output",
                 ].itertuples():
                     acknowledged.update({namedTuple._1: True})
 
@@ -705,7 +737,12 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC sprayd Service In Use": ModRowItem("", "", mbssString, "Disable this service"),
         "Echo Service Detection": ModRowItem("", "", mbssString, "Disable this service"),
         "RPC rusers Remote Information Disclosure": ModRowItem("", "", mbssString, "Disable this service"),
-        "rsync Service Detection": ModRowItem("", "", mbssString, "Disable this service and use secure alternatives like SFTP"),
+        "rsync Service Detection": ModRowItem(
+            "",
+            "",
+            mbssString,
+            "Disable this service and use secure alternatives like SFTP",
+        ),
         "Discard Service Detection": ModRowItem("", "", mbssString, "Disable this service"),
         # "Microsoft Windows SMB Service Detection": "Disable SMB and use secure alternatives like SFTP",
         # "Sendmail Service Detection": "Disable this service",
@@ -724,7 +761,9 @@ def normalizeMisc(df: pd.DataFrame):
             if high_with_sol[key].Synopsis != "":
                 df.loc[df["Vulnerability Name"] == key, "Synopsis"] = high_with_sol[key].Synopsis
             if high_with_sol[key].Description == mbssString:
-                df.loc[df["Vulnerability Name"] == key, "Description"] = df.loc[df["Vulnerability Name"] == key, "Description"] + mbssString
+                df.loc[df["Vulnerability Name"] == key, "Description"] = (
+                    df.loc[df["Vulnerability Name"] == key, "Description"] + mbssString
+                )
             elif high_with_sol[key].Description != "":
                 df.loc[df["Vulnerability Name"] == key, "Description"] = high_with_sol[key].Description
             if high_with_sol[key].Solution != "":
@@ -748,12 +787,12 @@ def normalizeMisc(df: pd.DataFrame):
     try:
         conditions = (
             (df["Vulnerability Name"] == "HyperText Transfer Protocol (HTTP) Information")
-            & ~df["Plugin Text"].str.contains("This combination of host and port requires TLS", na=False)
-            & ~df["Plugin Text"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
-            & ~df["Plugin Text"].str.contains("SSL : yes", na=False)
-            & ~df["Plugin Text"].str.contains("Location: https://", na=False)
-            & ~df["Plugin Text"].str.contains("You're speaking plain HTTP to an SSL-enabled server port.", na=False)
-            & ~df["Plugin Text"].str.contains("Client sent an HTTP request to an HTTPS server.", na=False)
+            & ~df["Plugin Output"].str.contains("This combination of host and port requires TLS", na=False)
+            & ~df["Plugin Output"].str.contains("plain HTTP request was sent to HTTPS port", na=False)
+            & ~df["Plugin Output"].str.contains("SSL : yes", na=False)
+            & ~df["Plugin Output"].str.contains("Location: https://", na=False)
+            & ~df["Plugin Output"].str.contains("You're speaking plain HTTP to an SSL-enabled server port.", na=False)
+            & ~df["Plugin Output"].str.contains("Client sent an HTTP request to an HTTPS server.", na=False)
         )
         temp = df.loc[conditions, "Description"]
         df.loc[conditions, ["Severity", "Synopsis", "Description", "Solution"]] = [

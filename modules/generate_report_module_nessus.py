@@ -9,7 +9,15 @@ quarter = False
 manipulateDF = False
 
 
-def generate_report_nessus(path, skip=True, checkAuthOpt=True, internetFacing=False, removeInfo=False, qrtr=False, oldNessus=False):
+def generate_report_nessus(
+    path,
+    skip=True,
+    checkAuthOpt=True,
+    internetFacing=False,
+    removeInfo=False,
+    qrtr=False,
+    oldNessus=False,
+):
     global quarter
     quarter = qrtr
     severities = ["Critical", "High", "Medium", "Low", "Info", "None"]
@@ -43,9 +51,13 @@ def generate_report_nessus(path, skip=True, checkAuthOpt=True, internetFacing=Fa
         "CANVAS": "object",
     }
 
-    columns_dtypes2 = { **columns_dtypes, 'CVSS': "float64", 'CVSS Temporal Score': "float64" }
-    columns_dtypes2.pop('CVSS v2.0 Temporal Score')
-    columns_dtypes2.pop('CVSS v2.0 Base Score')
+    columns_dtypes2 = {
+        **columns_dtypes,
+        "CVSS": "float64",
+        "CVSS Temporal Score": "float64",
+    }
+    columns_dtypes2.pop("CVSS v2.0 Temporal Score")
+    columns_dtypes2.pop("CVSS v2.0 Base Score")
 
     colNames = [
         "Plugin",
@@ -80,7 +92,10 @@ def generate_report_nessus(path, skip=True, checkAuthOpt=True, internetFacing=Fa
                     try:
                         print()
                         timeStart: datetime = datetime.now()
-                        df = pd.read_csv(f"{root}/{file}", dtype=(columns_dtypes2 if oldNessus else columns_dtypes))[list(columns_dtypes2.keys() if oldNessus else columns_dtypes.keys())]
+                        df = pd.read_csv(
+                            f"{root}/{file}",
+                            dtype=(columns_dtypes2 if oldNessus else columns_dtypes),
+                        )[list(columns_dtypes2.keys() if oldNessus else columns_dtypes.keys())]
                         if not os.path.exists(f"{root}/excel/"):
                             os.makedirs(f"{root}/excel/")
                         df.rename(
@@ -136,11 +151,11 @@ def fillNA(df, cola, colb):
     df.loc[:, cola:colb] = df.loc[:, cola:colb].fillna("Not Applicable")
 
 
-def customizeCols(df, colNames):
+def customizeCols(df: pd.DataFrame, colNames):
     if not quarter:
         df.drop(
-            df.columns.difference(colNames),
-            1,
+            columns=df.columns.difference(colNames),
+            axis=1,
             inplace=True,
         )
         df.insert(len(df.columns), "Remarks", "")
@@ -170,16 +185,18 @@ def customizeCols(df, colNames):
 
 
 def writeExcel(df, destpath):
-    writer = pd.ExcelWriter(
-        f"{destpath}.xlsx",
-        engine="xlsxwriter",
-        options={"strings_to_urls": False},
+    # Nessus - Remove duplicate entries for multiple CVE IDs
+    df.drop_duplicates(
+        subset=["IP Address", "Vulnerability Name", "Protocol", "Port", "Plugin Text"],
+        keep="first",
+        inplace=True,
     )
 
-    # Nessus - Remove duplicate entries for multiple CVE IDs
-    df.drop_duplicates(subset=["IP Address", "Vulnerability Name", "Protocol", "Port", "Plugin Text"], keep="first", inplace=True)
-
-    df.sort_values(["Severity", "Vulnerability Name", "IP Address"], ignore_index=True, inplace=True)
+    df.sort_values(
+        ["Severity", "Vulnerability Name", "IP Address"],
+        ignore_index=True,
+        inplace=True,
+    )
     df.insert(0, "S. No.", 0)
     df["S. No."] = df.index + 1
     df["Severity"] = df["Severity"].str.replace("None", "Info")
@@ -189,18 +206,22 @@ def writeExcel(df, destpath):
         import pdb
 
         pdb.set_trace()
-    df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
-    if not quarter:
-        try:
-            generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
-        except:
-            pass
-    # table formatting
-    if quarter:
-        _quarterWorksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
-    else:
-        _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
-    writer.save()
+    with pd.ExcelWriter(
+        f"{destpath}.xlsx",
+        engine="xlsxwriter",
+        engine_kwargs={"options": {"strings_to_urls": False}},
+    ) as writer:
+        df.to_excel(writer, sheet_name="Vulnerabilities", index=False)
+        if not quarter:
+            try:
+                generatePortsDF(df).to_excel(writer, sheet_name="Ports", index=False)
+            except:
+                pass
+        # table formatting
+        if quarter:
+            _quarterWorksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
+        else:
+            _worksheetFormat(writer.sheets["Vulnerabilities"], writer, df)
 
 
 def _quarterWorksheetFormat(worksheet, writer, df):
@@ -352,14 +373,24 @@ def _worksheetFormat(worksheet, writer, df):
         35,
         writer.book.add_format({"align": "fill", "indent": 1}),
     )
-    worksheet.set_column(get_col("Solution"), get_col("Plugin Text"), 35, writer.book.add_format({"indent": 1}))
+    worksheet.set_column(
+        get_col("Solution"),
+        get_col("Plugin Text"),
+        35,
+        writer.book.add_format({"indent": 1}),
+    )
     worksheet.set_column(
         get_col("S. No."),
         get_col("S. No."),
         max(len(str(df["S. No."].iloc[-1])) + 1, 5),
         writer.book.add_format({"align": "center"}),
     )  # S No.
-    worksheet.set_column(get_col("Plugin ID"), get_col("Plugin ID"), 8, writer.book.add_format({"align": "center"}))  # Plugin ID
+    worksheet.set_column(
+        get_col("Plugin ID"),
+        get_col("Plugin ID"),
+        8,
+        writer.book.add_format({"align": "center"}),
+    )  # Plugin ID
     worksheet.set_column(get_col("Vulnerability Name"), get_col("Vulnerability Name"), 41)  # Vuln. Name
     worksheet.set_column(
         get_col("IP Address"),
@@ -367,10 +398,20 @@ def _worksheetFormat(worksheet, writer, df):
         14,
         writer.book.add_format({"align": "center"}),
     )  # IP Addr.
-    worksheet.set_column(get_col("Protocol"), get_col("Protocol"), 7, writer.book.add_format({"align": "center"}))  # Protocol
+    worksheet.set_column(
+        get_col("Protocol"),
+        get_col("Protocol"),
+        7,
+        writer.book.add_format({"align": "center"}),
+    )  # Protocol
     worksheet.set_column(get_col("Port"), get_col("Port"), 6, writer.book.add_format({"align": "center"}))  # Port
     worksheet.set_column(get_col("CVE"), get_col("CVE"), 15, writer.book.add_format({"indent": 1}))
-    worksheet.set_column(get_col("Severity"), get_col("Severity"), 10, writer.book.add_format({"align": "center"}))  # Severity
+    worksheet.set_column(
+        get_col("Severity"),
+        get_col("Severity"),
+        10,
+        writer.book.add_format({"align": "center"}),
+    )  # Severity
     worksheet.set_column(
         get_col("Additional Details"),
         get_col("Additional Details"),
@@ -707,7 +748,12 @@ def normalizeMisc(df: pd.DataFrame):
         "RPC sprayd Service In Use": ModRowItem("", "", mbssString, "Disable this service"),
         "Echo Service Detection": ModRowItem("", "", mbssString, "Disable this service"),
         "RPC rusers Remote Information Disclosure": ModRowItem("", "", mbssString, "Disable this service"),
-        "rsync Service Detection": ModRowItem("", "", mbssString, "Disable this service and use secure alternatives like SFTP"),
+        "rsync Service Detection": ModRowItem(
+            "",
+            "",
+            mbssString,
+            "Disable this service and use secure alternatives like SFTP",
+        ),
         "Discard Service Detection": ModRowItem("", "", mbssString, "Disable this service"),
         # "Microsoft Windows SMB Service Detection": "Disable SMB and use secure alternatives like SFTP",
         # "Sendmail Service Detection": "Disable this service",

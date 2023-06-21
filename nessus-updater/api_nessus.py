@@ -13,6 +13,7 @@ os.environ["no_proxy"] = "127.0.0.1,localhost"
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 proxies = {}
 
+
 class Nessus:
     def __init__(self, base_url, username, password, debug=True):
         payload = f"username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}"
@@ -20,9 +21,11 @@ class Nessus:
         response = requests.request("POST", f"{base_url}/session", headers=headers, data=payload, verify=False, proxies=proxies)
         self.base_url = base_url
         self.debug = debug
-        self.login_token = response.json()["token"]
+        self.username = username
+        self.password = password
         if self.debug:
             print(f"{self.base_url}: {response.text}")
+        self.login_token = response.json()["token"]
 
     def update_plugins(self, plugins_file="all-2.0.tar.gz"):
         url = f"{self.base_url}/server/upload-plugins"
@@ -40,19 +43,26 @@ class Nessus:
         if self.debug:
             print(f"{self.base_url}: {response.text}")
 
+    def change_pass(self, new_pass):
+        print()
+        print(f"Changing password for {self.username} on {self.base_url}...")
+        url = f"{self.base_url}/session/chpasswd"
+        headers = {
+            "X-Cookie": f"token={self.login_token}",
+            "Content-Type": "application/json",
+            "X-API-Token": self.get_x_api_token(),
+        }
+        payload = json.dumps({"password": new_pass, "current_password": self.password})
+        response = requests.request("PUT", url, headers=headers, data=payload, verify=False, proxies=proxies)
+        if self.debug:
+            print(f"{self.base_url}: {response.text} {response.status_code}")
+
     def download_scan_csv(self):
         print()
-        url = f"{self.base_url}/scans"
-        headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-        response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
-        if self.debug:
-            print(f"{self.base_url}: {response.text}")
-        folders = [(fldrjson["name"], fldrjson["id"]) for fldrjson in response.json()["folders"]]
-        for i, folder in enumerate(folders):
-            print(f"{i+1}. {folder[0]}")
-        print("\nSelect folder: ", end="")
-        folder_id = folders[int(input()) - 1][1]
-        scans = response.json()["scans"]
+        scans_response = self.query_scans()
+        folder_id = self.folder_chooser(scans_response)
+        scans = scans_response["scans"]
+        # print(scans)
 
         print("\nSearching for corresponding scans and initiating download\n")
         for scan in scans:
@@ -128,19 +138,11 @@ class Nessus:
                 open(f"./reports/{file_name}", "wb").write(response.content)
 
     def schedule_scan(self, policy_name="1-NSG Scan", scan_name="Script Configured", schedule_file="scan-schedule.csv"):
-        url = f"{self.base_url}/policies"
-        headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
-        response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
-        # if self.debug:
-        #     print(f"{self.base_url}: {response.text}")
-
-        policies = response.json()["policies"]
-        policy_id = 0
-        for policy in policies:
-            if policy["name"] == policy_name:
-                policy_id = policy["id"]
-                break
-
+        input_string = input(f"Enter policy name or press [Enter] to select {policy_name}: ")
+        if len(input_string) != 0:
+            policy_name = input_string
+        policy_id = self.get_policy_id(policy_name)
+        folder_id = self.folder_chooser()
         url = f"{self.base_url}/scans"
         df = pd.read_csv(schedule_file)
         data: pd.Series = df.groupby(["date", "time"])["ips"].apply(list)
@@ -164,8 +166,8 @@ class Nessus:
                         "live_results": "",
                         "name": f"{scan_name} | {scan_datetime.strftime(r'%d-%m-%Y %H:%M')}",
                         "description": "Auto configured",
-                        "folder_id": 3,
-                        "scanner_id": "1",
+                        "folder_id": folder_id,
+                        "scanner_id": 1,
                         "policy_id": policy_id,
                         "text_targets": "\n".join(row[1]),
                         "file_targets": "",
@@ -188,3 +190,33 @@ class Nessus:
         r = requests.request("GET", f"{self.base_url}/nessus6.js", headers=headers, verify=False, proxies=proxies)
         m = re.search(r"([0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12})", r.text)
         return m.group(0)
+
+    def query_scans(self) -> dict:
+        url = f"{self.base_url}/scans"
+        headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
+        response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
+        if self.debug:
+            print(f"{self.base_url}: {response.text}")
+        return response.json()
+
+    def folder_chooser(self, scans_response=None):
+        if not scans_response:
+            scans_response = self.query_scans()
+        folders = [(fldrjson["name"], fldrjson["id"]) for fldrjson in scans_response["folders"]]
+        for i, folder in enumerate(folders):
+            print(f"{i+1}. {folder[0]}")
+        print("\nSelect folder: ", end="")
+        return folders[int(input()) - 1][1]
+
+    def get_policy_id(self, policy_name) -> dict:
+        url = f"{self.base_url}/policies"
+        headers = {"X-Cookie": f"token={self.login_token}", "Content-Type": "application/json"}
+        response = requests.request("GET", url, headers=headers, data={}, verify=False, proxies=proxies)
+        # if self.debug:
+        #     print(f"{self.base_url}: {response.text}")
+
+        policies = response.json()["policies"]
+        policy_id = -1
+        for policy in policies:
+            if policy["name"] == policy_name:
+                return policy["id"]

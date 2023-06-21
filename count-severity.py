@@ -4,7 +4,7 @@ import pyximport  # pip install cython
 pyximport.install(language_level=3, build_dir="./build")
 sys.path.append("./modules")
 from count_severity_module import count_severity
-
+n
 
 def main():
     if len(sys.argv) < 2:

@@ -2,7 +2,11 @@ import pandas
 import requests
 from bs4 import BeautifulSoup
 import re
+import urllib3
+import urllib
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+proxies = {}
 def getContent(cnum, type):
     headers = {
         "Connection": "keep-alive",
@@ -29,13 +33,23 @@ def getContent(cnum, type):
         )
 
     return requests.get(
-        "https://www.cert-in.org.in/s2cMainServlet", verify=False, headers=headers, params=params
+"https://www.cert-in.org.in/s2cMainServlet", verify=False, headers=headers, params=params, proxies=proxies
     ).content
 
 
 def main():
+    global proxies
+    proxies = urllib.request.getproxies()
+    if "https" in proxies:
+        from urllib.parse import quote
+        proxies["https"] = proxies["https"].replace("https", "http")  # required for Windows
+        proxy_user = quote(input("Enter proxy username: "))
+        proxy_pass = quote(input("Enter proxy password: "))
+        P_temp = proxies["https"]
+        proxies["https"] = P_temp[: P_temp.find("//") + 2] + proxy_user + ":" + proxy_pass + "@" + P_temp[P_temp.find("//") + 2 :]
+        proxies["http"] = proxies["https"]
     df_cve = pandas.DataFrame(columns=['CVIN', 'CVE'])
-    df_civn = pandas.read_excel(r'C:\Users\EL775CX\Downloads\a.xlsx', sheet_name=1)
+    df_civn = pandas.read_excel(r'C:\Users\EL775CX\Downloads\a.xlsx', sheet_name="Vulnerability")
     print(df_civn, end='\n\n')
     for cnum in df_civn["CIVN No"].tolist():
         print(cnum)
